@@ -2,8 +2,9 @@
 
 Climate-risk web page for SCG Packaging (Flooding module), linked to the **SCGP Water Management Dashboard** (`scgp-water-management`, a separate project that this repo does not change).
 
-| Part | Where |
+| Live | https://scgp-climate-flooding.vercel.app |
 |---|---|
+| Part | Where |
 | Web page | `public/index.html` (built) — served at `/` |
 | Water data | `/api/water` → server-side pass-through to `scgp-water-management.vercel.app/api/water` |
 | Station trend | `/api/history?stations=<id>&range=1D\|1W\|1M` → pass-through to `/api/history` |
