@@ -1,0 +1,6 @@
+{
+  "name": "scgp-climate-flooding",
+  "private": true,
+  "description": "SCGP Climate Change Management for Sustainability — Flooding (linked to SCGP Water Management Dashboard)",
+  "engines": { "node": ">=20" }
+}

@@ -1,0 +1,261 @@
+/* ===== SCGP Climate (Flooding) ↔ Water Management Dashboard — live feed + interactions (v2) ===== */
+(function(){
+var HOST='https://scgp-water-management.vercel.app',SELF='https://scgp-climate-flooding.vercel.app',ONV=location.hostname==='scgp-water-management.vercel.app',DASHURL=HOST+'/dashboard.html';
+var WMD=WMD_SNAP,CLI=null,SRC='snapshot',AT=null,MSG='',NEXT=0,POLL=10*60e3,MCP=null,CLIST='wait';
+function L(){return window.LANG==='th'?'th':'en'}
+var TX={en:{feed:'Live feed · SCGP Water Management Dashboard',live:'LIVE',snap:'SNAPSHOT',upd:'Update',open:'Open dashboard',next:'next update in',at:'Data as of',conn:'Connecting to the live feed…',
+noc:'Live feed needs the Vercel connector — add it in claude.ai Settings → Connectors. Showing the saved snapshot.',reauth:'Reconnect the Vercel connector in claude.ai Settings → Connectors to resume the live feed.',appr:'Allow this page to read the Water Management Dashboard to switch on the live feed.',allow:'Allow live data',
+off:'Live feed not reachable right now — showing the last data received.',nocli:'Extra sources (/api/climate) could not be reached — slots for those sources show “pending”.',
+st:'Station',riv:'River',wl:'Water level',bank:'Bank',gap:'Below bank',pct:'% of bank',time:'Time',dam:'Dam',stor:'Storage',inf:'Inflow',rel:'Release',mcm:'mcm/day',m:'m MSL',q:'Flow',
+nl:'Nearest water station',rn:'Rain 24 h (observed)',rf:'Rain next 24 h (forecast)',pk:'peak',nod:'No Thai open-data water station within 15 km.',ovr:'over bank',alert:'Water alert',lr:'Latest readings — linked to the Water Management Dashboard (click a row for its trend)',
+sitn:['','Critically low','Low','Normal','High','Critical / over bank'],basin:'Basin',dams:'Dams',loc:'Location',risk:'Risk',hint:'Click the pin for details',elev:'Ground level (DEM)',pend:'pending',
+high:'High risk',low:'Low risk',trend:'Trend',d1:'1 day',w1:'1 week',m1:'1 month',loading:'Loading…',nohist:'Trend needs the live feed (open on the Vercel site, or allow the Vercel connector).',
+src:'Sources',rule:'EGAT rule curve (storage %)',lower:'lower',upper:'upper',now:'now',
+wsc:'Reference: station K.11A Ban Wang Khanai (Mae Klong, ~7 km upstream of Wangsala).',wsa:'below street / bridge (+12.50)',wsb:'above pipe outlet (+8.70)',wsz:'below the lowest zone',wsa2:'above street / bridge (+12.50)',wsz2:'above the lowest zone',
+wif:'What-if water level',reset:'Current level',fl:'zones flooded',nx:'Next zone',nf:'No zone flooded',hz:'Hover a circle or a card; drag the slider to test a water level.',
+fz:'freeboard',under:'under water by',ds:'Values on the drawing are buttons — hover for the source, click for details and trend.',
+pipe:'Pipe & pump capacity is plant-specific (as-built drawings, pump curves). No open data source — to be supplied by Engineering / Utility.',
+land:'Ground level from Copernicus DEM (surface model incl. buildings/trees, for screening only — use plant survey levels for alert thresholds).',
+landp:'Ground level (Copernicus DEM via /api/climate) is not available right now.',
+rainf:'Forecast rain (Open-Meteo via /api/climate) is not available right now. TMD forecast API needs a token.',
+tidep:'Predicted tide (Open-Meteo marine model via /api/climate) is not available right now. Measured level below is from ThaiWater.',
+cwlp:'No current reading for this station from ThaiWater / RID (via /api/climate).',
+damp:'Medium-size reservoir (RID). Not yet in the feed — source: RID medium reservoir report.',
+prof:'Site risk profile',lad:'Level ladder (m MSL)',grd:'Ground (DEM)',cur:'River now',nosite:'No Thai river station near this site — rain and ground level only.',slot:'Slot'},
+th:{feed:'Live feed · SCGP Water Management Dashboard',live:'สด',snap:'บันทึกไว้',upd:'อัปเดต',open:'เปิด Dashboard',next:'อัปเดตถัดไปใน',at:'ข้อมูล ณ',conn:'กำลังเชื่อมต่อข้อมูลสด…',
+noc:'ข้อมูลสดต้องใช้ Vercel connector — เพิ่มได้ที่ claude.ai Settings → Connectors (ตอนนี้แสดงข้อมูลที่บันทึกไว้)',reauth:'เชื่อมต่อ Vercel connector ใหม่ที่ claude.ai Settings → Connectors เพื่อรับข้อมูลสดต่อ',appr:'อนุญาตให้หน้านี้อ่านข้อมูลจาก Water Management Dashboard เพื่อเปิดข้อมูลสด',allow:'อนุญาตข้อมูลสด',
+off:'เชื่อมต่อข้อมูลสดไม่ได้ชั่วคราว — แสดงข้อมูลล่าสุดที่ได้รับ',nocli:'เชื่อมต่อแหล่งข้อมูลเพิ่มเติม (/api/climate) ไม่ได้ — ช่องที่ใช้แหล่งนั้นแสดง “รอข้อมูล”',
+st:'สถานี',riv:'ลำน้ำ',wl:'ระดับน้ำ',bank:'ตลิ่ง',gap:'ต่ำกว่าตลิ่ง',pct:'% ความจุลำน้ำ',time:'เวลา',dam:'เขื่อน',stor:'ปริมาตรน้ำ',inf:'น้ำไหลเข้า',rel:'น้ำระบาย',mcm:'ล้าน ลบ.ม./วัน',m:'ม.รทก.',q:'อัตราการไหล',
+nl:'สถานีวัดน้ำที่ใกล้ที่สุด',rn:'ฝน 24 ชม. (ตรวจวัด)',rf:'ฝน 24 ชม. ข้างหน้า (คาดการณ์)',pk:'สูงสุด',nod:'ไม่มีสถานีวัดน้ำของไทยภายใน 15 กม.',ovr:'ล้นตลิ่ง',alert:'แจ้งเตือนน้ำ',lr:'ค่าตรวจวัดล่าสุด — เชื่อมกับ Water Management Dashboard (คลิกแถวเพื่อดูกราฟ)',
+sitn:['','น้ำน้อยวิกฤต','น้ำน้อย','ปกติ','น้ำมาก','วิกฤต / ล้นตลิ่ง'],basin:'ลุ่มน้ำ',dams:'เขื่อน',loc:'ที่ตั้ง',risk:'ความเสี่ยง',hint:'คลิกหมุดเพื่อดูรายละเอียด',elev:'ระดับพื้นดิน (DEM)',pend:'รอข้อมูล',
+high:'ความเสี่ยงสูง',low:'ความเสี่ยงต่ำ',trend:'แนวโน้ม',d1:'1 วัน',w1:'1 สัปดาห์',m1:'1 เดือน',loading:'กำลังโหลด…',nohist:'กราฟต้องใช้ข้อมูลสด (เปิดบนเว็บ Vercel หรืออนุญาต Vercel connector)',
+src:'แหล่งข้อมูล',rule:'Rule curve กฟผ. (% ปริมาตร)',lower:'ล่าง',upper:'บน',now:'ปัจจุบัน',
+wsc:'อ้างอิงสถานี K.11A บ้านวังขนาย (แม่น้ำแม่กลอง เหนือวังศาลาประมาณ 7 กม.)',wsa:'ต่ำกว่าถนน / สะพาน (+12.50)',wsb:'สูงกว่าระดับท่อ (+8.70)',wsz:'ต่ำกว่าพื้นที่ต่ำสุด',wsa2:'สูงกว่าถนน / สะพาน (+12.50)',wsz2:'สูงกว่าพื้นที่ต่ำสุด',
+wif:'จำลองระดับน้ำ',reset:'ระดับปัจจุบัน',fl:'พื้นที่ถูกน้ำท่วม',nx:'พื้นที่ถัดไป',nf:'ยังไม่มีพื้นที่ถูกน้ำท่วม',hz:'ชี้ที่วงกลมหรือการ์ด หรือเลื่อนแถบเพื่อทดสอบระดับน้ำ',
+fz:'ระยะเผื่อ',under:'จมน้ำ',ds:'ตัวเลขบนภาพกดได้ — ชี้เพื่อดูแหล่งข้อมูล คลิกเพื่อดูรายละเอียดและกราฟ',
+pipe:'ความสามารถของท่อและปั๊มเป็นข้อมูลเฉพาะโรงงาน (แบบ As-built, Pump curve) ไม่มีแหล่งข้อมูลเปิด — รอข้อมูลจาก Engineering / Utility',
+land:'ระดับพื้นจาก Copernicus DEM (ผิวพื้นรวมอาคาร/ต้นไม้ ใช้คัดกรองเบื้องต้น — เกณฑ์เตือนภัยควรใช้ผลสำรวจระดับของโรงงาน)',
+landp:'ยังไม่มีค่าระดับพื้น (Copernicus DEM ผ่าน /api/climate) ในขณะนี้',
+rainf:'ยังไม่มีฝนคาดการณ์ (Open-Meteo ผ่าน /api/climate) ในขณะนี้ — TMD Forecast API ต้องใช้ Token',
+tidep:'ยังไม่มีน้ำทะเลคาดการณ์ (Open-Meteo marine ผ่าน /api/climate) ในขณะนี้ ค่าตรวจวัดด้านล่างมาจาก สสน.',
+cwlp:'ยังไม่มีค่าล่าสุดของสถานีนี้จาก สสน. / กรมชลประทาน (ผ่าน /api/climate)',
+damp:'อ่างเก็บน้ำขนาดกลาง (กรมชลประทาน) ยังไม่อยู่ในฟีด — แหล่ง: รายงานอ่างขนาดกลาง กรมชลประทาน',
+prof:'โปรไฟล์ความเสี่ยงพื้นที่',lad:'บันไดระดับ (ม.รทก.)',grd:'พื้นดิน (DEM)',cur:'ระดับน้ำตอนนี้',nosite:'ไม่มีสถานีแม่น้ำของไทยใกล้พื้นที่นี้ — แสดงฝนและระดับพื้นดิน',slot:'ช่อง'}};
+function X(k){return TX[L()][k]}
+function e(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function f(v,d){return v==null||v===''||isNaN(v)?'–':(+v).toFixed(d==null?2:d)}
+var SC=['#9aa0a6','#db802b','#e0a800','#00a651','#1d4ed8','#e60000'];
+function hv(a,b,c,d){var t=Math.PI/180,x=Math.sin((c-a)*t/2),y=Math.sin((d-b)*t/2),h=x*x+Math.cos(a*t)*Math.cos(c*t)*y*y;return 12742*Math.asin(Math.sqrt(h))}
+function W(code){return(WMD.wl||[]).filter(function(x){return x[1]===code})[0]||null}
+function CW(code){var r=CLI&&CLI.stations&&CLI.stations.rows;return r?r.filter(function(x){return x.code===code})[0]||null:null}
+function EG(code){return((WMD.egat&&WMD.egat.tele)||[]).filter(function(x){return x[0]===code})[0]||null}
+function ED(dam){return((WMD.egat&&WMD.egat.daily)||[]).filter(function(x){return x[0]===dam})[0]||null}
+function DM(name){return(WMD.dam||[]).filter(function(x){return x[1]===name})[0]||null}
+function sit(r){return r?(r[13]?5:(r[9]||0)):0}
+function nearWL(la,ln,km){var b=null,bd=km;(WMD.wl||[]).forEach(function(x){if(x[3]==null)return;var d=hv(la,ln,x[3],x[4]);if(d<=bd){bd=d;b=x}});return b?{r:b,d:bd}:null}
+function nearRain(la,ln,km){var b=null,bd=km;(WMD.rain||[]).forEach(function(x){var d=hv(la,ln,x[1],x[2]);if(d<=bd){bd=d;b=x}});return b?{r:b,d:bd}:null}
+function siteIdx(re){for(var i=0;i<PTS.length;i++)if(re.test(PTS[i][0]))return i;return -1}
+function cliSite(i){if(!CLI||!CLI.sites||i<0)return null;var k=CLI.sites.indexOf(PTS[i][0]);if(k<0)return null;return{rain:CLI.rain?CLI.rain[k]:null,elev:CLI.elev?CLI.elev[k]:null}}
+function loc(d){return d?new Date(d).toLocaleString(L()==='th'?'th-TH':'en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}):''}
+function tsh(s){return(s||'').slice(5,16)}
+function basinName(k){try{return RT(k).n}catch(_){return k}}
+
+/* ---------- data layer: same-origin fetch on Vercel, CORS fetch elsewhere, Vercel connector inside Claude ---------- */
+function parseP(res){var p=res&&res.payload!==undefined?res.payload:res;if(typeof p==='string'){try{p=JSON.parse(p)}catch(_){}}
+if(p&&typeof p.text==='string'){if(p.status&&p.status!==200){var er=new Error('HTTP '+p.status);er.status=p.status;throw er}return JSON.parse(p.text)}return p}
+function fx(url){var c=new AbortController(),t=setTimeout(function(){c.abort()},25000);return fetch(url,{signal:c.signal}).then(function(r){clearTimeout(t);if(!r.ok){var er=new Error('HTTP '+r.status);er.status=r.status;throw er}return r.json()})}
+var WEB=/^https?:$/.test(location.protocol)&&!/(^|\.)claude\.ai$|claudeusercontent|anthropic/.test(location.hostname);
+function direct(path){return WEB?fx(path).catch(function(){return fx((path.indexOf('/api/climate')===0?SELF:HOST)+path)}):fx((path.indexOf('/api/climate')===0?SELF:HOST)+path)}
+function viaMcp(path,fresh){if(!MCP)return Promise.reject({code:'no_mcp'});return MCP.callTool('Vercel','web_fetch_vercel_url',{url:(path.indexOf('/api/climate')===0?SELF:HOST)+path},{cache:fresh?{refresh:true,staleTime:0,gcTime:3600e3}:{staleTime:5*60e3,gcTime:3600e3}}).then(parseP)}
+function get(path,fresh){return direct(path).catch(function(){return viaMcp(path,fresh)})}
+function setWater(j,at){if(!j||!j.wl)return;WMD=j;SRC='live';AT=at||j.fetchedAt;MSG='';redraw()}
+function setCli(j){if(j&&(j.stations||j.rain||j.elev)){CLI=j;CLIST='ok'}else CLIST='none';redraw()}
+function errMsg(err){var c=err&&err.code;if(c==='server_not_connected'||c==='not_granted'||c==='capability_disabled'||c==='not_in_manifest'||c==='no_mcp')return X('noc');if(c==='needs_reauth')return X('reauth');if(c==='approval_required'||c==='consent_required')return'APPR';return X('off')}
+var watching=null;
+function loadAll(user){
+  if(user){MSG=X('conn');drawFeed()}
+  direct('/api/water').then(function(j){setWater(j);NEXT=Date.now()+POLL;direct('/api/climate').then(setCli,function(){setCli(null)})}).catch(function(){
+    if(!MCP){if(user||SRC!=='live'){MSG=X('noc');drawFeed()}return}
+    if(user){MCP.invalidate('Vercel','web_fetch_vercel_url').catch(function(){});viaMcp('/api/water',true).then(function(j){setWater(j);NEXT=Date.now()+POLL}).catch(function(er){MSG=errMsg(er);drawFeed()})}
+    else if(!watching){watching=MCP.watchTool('Vercel','web_fetch_vercel_url',{url:HOST+'/api/water'},function(ev){
+      if(ev.type==='data'){try{var j=parseP(ev.result);setWater(j,ev.result.cache?ev.result.cache.storedAt:null);NEXT=Date.now()+POLL}catch(er){MSG=X('off');drawFeed()}}
+      else{MSG=errMsg(ev.error);drawFeed()}},{cache:{staleTime:5*60e3,gcTime:3600e3},refetchInterval:POLL})}
+    viaMcp('/api/climate',user).then(setCli,function(){setCli(null)})
+  })}
+setInterval(function(){if(direct.ok&&Date.now()>NEXT)loadAll(false);drawCount()},1000);
+
+/* ---------- live feed bar ---------- */
+var feed=document.createElement('div');feed.className='wfeed';feed.setAttribute('aria-live','polite');
+var fp=document.getElementById('fp'),b2=fp&&fp.querySelector('.bx.b2');if(b2)b2.parentNode.insertBefore(feed,b2.parentNode.firstChild);
+function tickItems(){var it=[],d;
+  [['VRK','วชิราลงกรณ'],['SNR','ศรีนครินทร์'],['UR','อุบลรัตน์']].forEach(function(z){var a=ED(z[0]),b=DM(z[1]);var v=a?a[4]:(b?b[7]:null);if(v!=null)it.push({k:'dam:'+z[1],c:'#1e6f8c',t:z[1]+' '+X('rel'),v:f(v)+' mcm'})});
+  ['K.37','K.35A'].forEach(function(c){var t=EG(c);if(t&&t[3])it.push({k:'wl:'+c,c:'#1e6f8c',t:c+' '+X('q'),v:f(t[3],1)+' m³/s'})});
+  ['K.11A','K.55A','MKG006','GLF001','CPY012','E.22B','Kgt.3'].forEach(function(c){var w=W(c);if(w)it.push({k:'wl:'+c,c:SC[sit(w)],t:c+' '+w[2],v:f(w[6])+' m · '+f(w[8],0)+'%'})});
+  var top=(WMD.wl||[]).slice().sort(function(a,b){return(b[8]||0)-(a[8]||0)})[0];if(top)it.unshift({k:'wl:'+top[1],c:SC[sit(top)],t:'▲ '+top[1]+' '+top[2],v:f(top[8],0)+'%'});
+  var ac=alertCount();it.unshift({k:'alert',c:ac?'#e60000':'#00a651',t:X('alert'),v:String(ac)});return it}
+function drawFeed(){var live=SRC==='live',it=tickItems(),h=it.map(function(o){return'<button type="button" data-k="'+e(o.k)+'"><span class="sd" style="background:'+o.c+'"></span>'+e(o.t)+' <b>'+e(o.v)+'</b></button>'}).join('');
+  var appr=MSG==='APPR';
+  feed.innerHTML='<div class="wst"><span class="wdot '+(live?'on':'')+'"></span><span class="wtag '+(live?'on':'')+'">'+e(live?X('live'):X('snap'))+'</span><div class="wti"><b>'+e(X('feed'))+'</b><span>'+e(X('at'))+' '+e(loc(AT||WMD.fetchedAt))+' <span class="wcd"></span></span></div></div>'+
+  '<div class="wtk"><div class="wtk-r">'+h+h+'</div></div><div class="wact">'+(appr?'<button type="button" class="wbtn pri" id="wallow">'+e(X('allow'))+'</button>':'')+'<button type="button" class="wbtn" id="wupd">↻ '+e(X('upd'))+'</button><a class="wbtn" href="'+DASHURL+'" target="_blank" rel="noopener">'+e(X('open'))+' ↗</a></div>'+
+  '<p class="wmsg">'+e(appr?X('appr'):MSG)+(CLIST==='none'&&!MSG?e(X('nocli')):'')+'</p>';
+  feed.querySelector('#wupd').onclick=function(){loadAll(true)};
+  var al=feed.querySelector('#wallow');if(al)al.onclick=function(){viaMcp('/api/water',true).then(function(j){setWater(j)}).catch(function(er){MSG=errMsg(er);drawFeed()})};
+  feed.querySelectorAll('.wtk button').forEach(function(b){b.onclick=function(){var k=b.dataset.k;if(k.indexOf('wl:')===0)openStation(k.slice(3));else if(k.indexOf('dam:')===0)openDam(k.slice(4))}});drawCount()}
+function drawCount(){var c=feed.querySelector('.wcd');if(!c)return;if(SRC!=='live'||!NEXT){c.textContent='';return}var s=Math.max(0,Math.round((NEXT-Date.now())/1000));c.textContent='· '+X('next')+' '+Math.floor(s/60)+':'+('0'+s%60).slice(-2)}
+
+/* ---------- Box 1: map — pins only, rich hover, click card ---------- */
+window.redFx=function(){return[]};redFx=window.redFx;window.selFx=function(){return[]};selFx=window.selFx;
+var BD={'Mae Krong Basin':['วชิราลงกรณ','ศรีนครินทร์'],'Chee Basin':['อุบลรัตน์','จุฬาภรณ์'],'Bangpakong Basin':['นฤบดินทรจินดา','ขุนด่านปราการชล'],'Chaopaya Basin':['ภูมิพล','สิริกิติ์','ป่าสักชลสิทธิ์']};
+var BOF=null;function basinOf(i){if(!BOF){BOF={};Object.keys(RV).forEach(function(k){nearF(RV[k].p,10).forEach(function(x){if(!BOF[x[0]])BOF[x[0]]=k})});Object.keys(FV).forEach(function(k){var b=FV[k];PTS.forEach(function(q){if(!BOF[q[0]]&&q[1]>=b[0][0]&&q[1]<=b[1][0]&&q[2]>=b[0][1]&&q[2]<=b[1][1])BOF[q[0]]=k})})}return BOF[PTS[i][0]]||null}
+function damsFor(i){var q=PTS[i],b=basinOf(i),out=[];if(b&&BD[b])out=BD[b].map(DM).filter(Boolean);if(!out.length)out=(WMD.dam||[]).map(function(d){return[d,hv(q[2],q[1],d[2],d[3])]}).filter(function(z){return z[1]<=200}).sort(function(a,c){return a[1]-c[1]}).slice(0,2).map(function(z){return z[0]});return out.map(function(d){return{d:d,km:hv(q[2],q[1],d[2],d[3])}})}
+function country(q){var c=[[97,106,5.5,21,'Thailand'],[102,110,8,24,'Vietnam'],[116,127,4,21,'Philippines'],[95,141,-11,6,'Indonesia'],[99,120,1,7.5,'Malaysia']];if(q[2]>1&&q[2]<7.5&&q[1]>100.6&&q[1]<120)return'Malaysia';for(var i=0;i<c.length;i++)if(q[1]>=c[i][0]&&q[1]<=c[i][1]&&q[2]>=c[i][2]&&q[2]<=c[i][3])return c[i][4];return''}
+function siteTip(i){var q=PTS[i],r=RED.indexOf(q[0])>=0,b=basinOf(i),n=nearWL(q[2],q[1],15),ds=damsFor(i);
+  return'<div class="wtipm"><div class="t">'+e(q[0])+'</div><div class="m">'+e(country(q))+(n&&n.r[16]?' · '+e(n.r[16]):'')+' · '+q[2].toFixed(4)+', '+q[1].toFixed(4)+'</div>'+
+  '<div class="r"><i>'+e(X('risk'))+'</i><span><span class="k" style="background:'+(r?'#e60000':'#9aa0a6')+'">'+e(r?X('high'):X('low'))+'</span></span></div>'+
+  '<div class="r"><i>'+e(X('basin'))+'</i><span>'+e(b?basinName(b):'–')+(n?' · '+e(n.r[14]):'')+'</span></div>'+
+  '<div class="r"><i>'+e(X('dams'))+'</i><span>'+(ds.length?ds.map(function(z){return e(z.d[1])+' '+f(z.d[5],0)+'% ('+Math.round(z.km)+' km)'}).join('<br>'):'–')+'</span></div>'+
+  (n?'<div class="r"><i>'+e(X('wl'))+'</i><span>'+e(n.r[1])+' '+f(n.r[6])+' m · '+f(n.r[8],0)+'%</span></div>':'')+'<div class="h">'+e(X('hint'))+'</div></div>'}
+var oBO=window.buildOpt;window.buildOpt=function(){var o=oBO.apply(this,arguments);var ft=o.tooltip.formatter;o.tooltip.formatter=function(p){var d=p.data;if(d&&d.idx!==undefined)return siteTip(d.idx);return ft(p)};o.tooltip.confine=true;return o};buildOpt=window.buildOpt;
+function card(i){var q=PTS[i],r=RED.indexOf(q[0])>=0,b=basinOf(i),n=nearWL(q[2],q[1],15),rn=nearRain(q[2],q[1],10),ds=damsFor(i),cs=cliSite(i);
+  var h='<button type="button" class="x" aria-label="Close">×</button><p class="n">'+e(q[0])+'</p><p class="c">'+e(country(q))+' · '+q[2].toFixed(5)+', '+q[1].toFixed(5)+'</p><span class="rk" style="background:'+(r?'#e60000':'#9aa0a6')+'">'+e(r?X('high'):X('low'))+'</span>';
+  h+='<h4>'+e(X('basin'))+'</h4><div class="row"><span>'+e(b?basinName(b):'–')+'</span><b>'+e(n?n.r[14]:'')+'</b></div>';
+  if(ds.length){h+='<h4>'+e(X('dams'))+'</h4>';ds.forEach(function(z){var d=z.d;h+='<div class="row" style="border:0"><span>'+e(d[1])+' · '+Math.round(z.km)+' km</span><b>'+f(d[5],1)+'%</b></div><div class="bar"><span style="width:'+Math.min(100,d[5]||0)+'%;background:'+((d[5]||0)>=100?'#e60000':(d[5]||0)>=80?'#1d4ed8':'#00a651')+'"></span></div><div class="row"><span>'+e(X('inf'))+' / '+e(X('rel'))+'</span><b>'+f(d[6])+' / '+f(d[7])+' mcm</b></div>'})}
+  h+='<h4>'+e(X('nl'))+'</h4>';if(n){var w=n.r,k=sit(w);h+='<div class="row"><span><span class="sd" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+SC[k]+'"></span> '+e(w[1])+' '+e(w[2])+'</span><b>'+n.d.toFixed(1)+' km</b></div><div class="row"><span>'+e(X('wl'))+' / '+e(X('bank'))+'</span><b>'+f(w[6])+' / '+f(w[10])+' m</b></div><div class="row"><span>'+e(X('pct'))+'</span><b style="color:'+SC[k]+'">'+f(w[8],0)+'% '+e(X('sitn')[k]||'')+'</b></div>'}else h+='<p class="pend">'+e(X('nod'))+'</p>';
+  h+='<h4>'+e(L()==='th'?'ฝนและระดับพื้น':'Rain and ground level')+'</h4><div class="row"><span>'+e(X('rn'))+'</span><b>'+(rn?f(rn.r[4],1)+' mm':'–')+'</b></div><div class="row"><span>'+e(X('rf'))+'</span><b>'+(cs&&cs.rain?f(cs.rain[1],1)+' mm':'<span class="pend">'+e(X('pend'))+'</span>')+'</b></div><div class="row"><span>'+e(X('elev'))+'</span><b>'+(cs&&cs.elev!=null?f(cs.elev,1)+' m':'<span class="pend">'+e(X('pend'))+'</span>')+'</b></div>';
+  if(n)h+='<div class="lnk"><button type="button" class="wbtn pri" data-st="'+e(n.r[1])+'">'+e(X('trend'))+' '+e(n.r[1])+'</button></div>';
+  return h}
+function showCard(i){var w=document.getElementById('map').parentNode,b=document.getElementById('s3');if(!b){b=document.createElement('div');b.id='s3';w.appendChild(b)}b.className='s3 wcard';b.innerHTML=card(i);b.hidden=false;b.style.animation='none';void b.offsetWidth;b.style.animation='';
+  b.querySelector('.x').onclick=function(){siteClose()};var t=b.querySelector('[data-st]');if(t)t.onclick=function(){openStation(t.dataset.st)}}
+window.siteFocus=function(i){var q=PTS[i];if(!q)return;selI=i;showCard(i);if(window.chart){if(!home)home=geoNow();var w=document.getElementById('map').parentNode;w.classList.remove('tilt');tweenGeo([q[1],q[2]],Math.max(geoNow().z,30),1100)}};siteFocus=window.siteFocus;
+function patchLeaflet(){if(!window.lmap||!lmap||!lmk||!lmk.length||lmk._w)return;lmk._w=1;lmk.forEach(function(m){var i=m._i;m.unbindTooltip();m.bindTooltip(function(){return siteTip(i)},{direction:'top',className:'wltip',opacity:1});m.on('click',function(){showCard(i)})})}
+setInterval(patchLeaflet,800);
+setInterval(function(){var c=window.chart;if(!c||c._wfx)return;c._wfx=1;try{var ft=c.getOption().tooltip[0].formatter;c.setOption({tooltip:{confine:true,formatter:function(p){var d=p.data;if(d&&d.idx!==undefined)return siteTip(d.idx);return ft?ft(p):e(p.name)}},series:[{},{},{},{},{data:[]},{data:[]}]})}catch(_){}},500);
+function alertCount(){var c=0;(window.PTS||[]).forEach(function(q){var n=nearWL(q[2],q[1],15);if(n&&sit(n.r)>=5)c++});return c}
+function kpi(){var k=document.querySelector('.kpi');if(!k)return;var a=k.querySelector('.wa');if(!a){a=document.createElement('div');a.className='wa';k.appendChild(a)}a.innerHTML='<b>'+alertCount()+'</b>'+e(X('alert'))}
+var oME=window.mapExtras;window.mapExtras=function(){oME.apply(this,arguments);kpi()};mapExtras=window.mapExtras;
+
+/* ---------- tooltip + drawer ---------- */
+var tip=document.createElement('div');tip.className='wtip';document.body.appendChild(tip);
+function showTip(el,html){tip.innerHTML=html;tip.classList.add('on');var r=el.getBoundingClientRect(),tw=tip.offsetWidth,th=tip.offsetHeight,x=Math.min(innerWidth-tw-8,Math.max(8,r.left+r.width/2-tw/2)),y=r.top-th-10;if(y<8)y=r.bottom+10;tip.style.left=x+'px';tip.style.top=y+'px'}
+function hideTip(){tip.classList.remove('on')}
+var scrim=document.createElement('div');scrim.className='wscrim';document.body.appendChild(scrim);
+var dr=document.createElement('aside');dr.className='wdr';dr.setAttribute('role','dialog');dr.setAttribute('aria-modal','true');document.body.appendChild(dr);
+function closeDr(){dr.classList.remove('on');scrim.classList.remove('on');document.querySelectorAll('.wov.act').forEach(function(x){x.classList.remove('act')})}
+scrim.onclick=closeDr;document.addEventListener('keydown',function(ev){if(ev.key==='Escape')closeDr()});
+function openDr(title,sub,body,after){hideTip();dr.innerHTML='<div class="wdr-h"><div><h3>'+e(title)+'</h3><p>'+e(sub||'')+'</p></div><button type="button" class="x" aria-label="Close">×</button></div><div class="wdr-b">'+body+'</div>';dr.querySelector('.x').onclick=closeDr;dr.classList.add('on');scrim.classList.add('on');dr.querySelector('.x').focus();if(after)after(dr.querySelector('.wdr-b'))}
+var SRCL='<div class="src">'+'%s'+'</div>';
+function srcs(a){return SRCL.replace('%s',e(X('src'))+': '+a.map(function(s){return s[1]?'<a href="'+s[1]+'" target="_blank" rel="noopener">'+e(s[0])+'</a>':e(s[0])}).join(' · '))}
+var S_TW=['สสน. ThaiWater','https://www.thaiwater.net/'],S_EG=['กฟผ. Water Intelligence Center','https://water.egat.co.th/'],S_RID=['กรมชลประทาน','https://www.rid.go.th/'],S_WM=['SCGP Water Management Dashboard',DASHURL],S_DEM=['Copernicus DEM','https://dataspace.copernicus.eu/'],S_OM=['Open-Meteo','https://open-meteo.com/'],S_NAVY=['กรมอุทกศาสตร์ ระดับน้ำทำนาย','https://hydro.navy.mi.th/'],S_TMD=['TMD Data/API','https://data.tmd.go.th/'],S_DGO=['data.go.th (สสน.)','https://data.go.th/'];
+function lineChart(box,pts,bank,unit){var s=box;function draw(){var Wd=s.clientWidth,H=s.clientHeight;if(!Wd)return;var P=[30,12,22,44],v=pts.filter(function(p){return p[1]!=null});if(v.length<2){s.innerHTML='<div class="em">'+e(X('nohist'))+'</div>';return}
+  var t0=v[0][0],t1=v[v.length-1][0],lo=Math.min.apply(null,v.map(function(p){return p[1]})),hi=Math.max.apply(null,v.map(function(p){return p[1]}));if(bank!=null){hi=Math.max(hi,bank);lo=Math.min(lo,bank-0.5)}var pad=(hi-lo)*.1||.5;lo-=pad;hi+=pad;
+  var X1=function(t){return P[3]+(t-t0)/(t1-t0||1)*(Wd-P[3]-P[1])},Y1=function(y){return P[0]+(hi-y)/(hi-lo)*(H-P[0]-P[2])};
+  var d=v.map(function(p,i){return(i?'L':'M')+X1(p[0]).toFixed(1)+' '+Y1(p[1]).toFixed(1)}).join(''),g='';for(var k=0;k<=3;k++){var yv=lo+(hi-lo)*k/3;g+='<line x1="'+P[3]+'" x2="'+(Wd-P[1])+'" y1="'+Y1(yv)+'" y2="'+Y1(yv)+'" stroke="#dfe7ee"/><text x="'+(P[3]-6)+'" y="'+(Y1(yv)+4)+'" text-anchor="end" font-size="10" fill="#4a6a82">'+yv.toFixed(1)+'</text>'}
+  var bl=bank!=null?'<line x1="'+P[3]+'" x2="'+(Wd-P[1])+'" y1="'+Y1(bank)+'" y2="'+Y1(bank)+'" stroke="#e60000" stroke-dasharray="4 3"/><text x="'+(Wd-P[1])+'" y="'+(Y1(bank)-4)+'" text-anchor="end" font-size="10" fill="#e60000">'+e(X('bank'))+' '+bank.toFixed(2)+'</text>':'';
+  var dl=function(t){return new Date(t).toLocaleString(L()==='th'?'th-TH':'en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})};
+  s.innerHTML='<svg role="img" aria-label="trend">'+g+bl+'<path d="'+d+'" fill="none" stroke="#1e6f8c" stroke-width="2"/><line class="cx" y1="'+P[0]+'" y2="'+(H-P[2])+'" stroke="#14384f" stroke-width="1" opacity="0"/><circle class="cd" r="4" fill="#1e6f8c" stroke="#fff" stroke-width="2" opacity="0"/><text x="'+P[3]+'" y="'+(H-6)+'" font-size="10" fill="#4a6a82">'+e(dl(t0))+'</text><text x="'+(Wd-P[1])+'" y="'+(H-6)+'" text-anchor="end" font-size="10" fill="#4a6a82">'+e(dl(t1))+'</text></svg><div class="ro"></div>';
+  var sv=s.querySelector('svg'),cx=sv.querySelector('.cx'),cd=sv.querySelector('.cd'),ro=s.querySelector('.ro');ro.textContent=v[v.length-1][1].toFixed(2)+' '+unit+' · '+dl(t1);
+  function mv(ev){var r=sv.getBoundingClientRect(),xx=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left,tt=t0+(xx-P[3])/(Wd-P[3]-P[1])*(t1-t0),b=v[0];v.forEach(function(p){if(Math.abs(p[0]-tt)<Math.abs(b[0]-tt))b=p});cx.setAttribute('x1',X1(b[0]));cx.setAttribute('x2',X1(b[0]));cx.setAttribute('opacity',.35);cd.setAttribute('cx',X1(b[0]));cd.setAttribute('cy',Y1(b[1]));cd.setAttribute('opacity',1);ro.textContent=b[1].toFixed(2)+' '+unit+(b[2]!=null?' · '+b[2]+' m³/s':'')+' · '+dl(b[0])}
+  sv.addEventListener('mousemove',mv);sv.addEventListener('touchmove',mv,{passive:true});sv.addEventListener('mouseleave',function(){cx.setAttribute('opacity',0);cd.setAttribute('opacity',0)})}
+  draw();if(window.ResizeObserver)new ResizeObserver(draw).observe(s)}
+function histInto(el,id,bank,rng){el.innerHTML='<div class="em">'+e(X('loading'))+'</div>';get('/api/history?stations='+id+'&range='+rng).then(function(j){var st=j&&j.stations&&j.stations[id];if(!st||st.error||!st.points)throw 0;lineChart(el,st.points,st.bank!=null?st.bank:bank,'m')}).catch(function(){el.innerHTML='<div class="em">'+e(X('nohist'))+'</div>'})}
+function trendBlock(id,bank){return id?'<h5>'+e(X('trend'))+'</h5><div class="seg" data-id="'+id+'"><button type="button" data-r="1D" aria-pressed="false">'+e(X('d1'))+'</button><button type="button" data-r="1W" aria-pressed="true">'+e(X('w1'))+'</button><button type="button" data-r="1M" aria-pressed="false">'+e(X('m1'))+'</button></div><div class="wch" data-bank="'+(bank==null?'':bank)+'"></div>':''}
+function wireTrend(b){var sg=b.querySelector('.seg');if(!sg)return;var ch=b.querySelector('.wch'),bk=ch.dataset.bank===''?null:+ch.dataset.bank;function go(r){sg.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.r===r?'true':'false')});histInto(ch,sg.dataset.id,bk,r)}sg.querySelectorAll('button').forEach(function(x){x.onclick=function(){go(x.dataset.r)}});go('1W')}
+function openStation(code){var w=W(code),c=CW(code);if(!w&&!c){openDr(code,'',('<div class="wpd">'+e(X('cwlp'))+'</div>')+srcs([S_RID,S_TW]));return}
+  var id,nm,wl,bank,pct,k,t,riv,ag,q=null,eg=EG(code);if(w){id=w[0];nm=w[2];wl=w[6];bank=w[10];pct=w[8];k=sit(w);t=w[5];riv=w[14];ag=w[15]}else{id=c.id;nm=c.name;wl=c.wl;bank=c.bank;pct=c.pct;k=c.sit||0;t=c.t;riv=c.river;ag=c.agency}
+  if(c&&c.q!=null)q=c.q;if(eg&&eg[3])q=eg[3];
+  var body='<div class="kg"><div><small>'+e(X('wl'))+'</small><b>'+f(wl)+'</b><i>'+e(X('m'))+'</i></div><div><small>'+e(X('bank'))+'</small><b>'+f(bank)+'</b><i>'+e(X('m'))+'</i></div><div><small>'+e(X('pct'))+'</small><b style="color:'+SC[k]+'">'+f(pct,0)+'%</b><i>'+e(X('sitn')[k]||'')+'</i></div><div><small>'+e(X('q'))+'</small><b>'+(q!=null?f(q,1):'–')+'</b><i>m³/s</i></div></div>'+trendBlock(id,bank)+srcs([S_TW,S_RID,eg?S_EG:null,S_WM].filter(Boolean));
+  openDr(code+' '+nm,(riv||'')+' · '+(ag||'')+' · '+tsh(t),body,wireTrend)}
+function openDam(name){var d=DM(name),cd={'วชิราลงกรณ':'VRK','ศรีนครินทร์':'SNR','อุบลรัตน์':'UR','ภูมิพล':'BB','สิริกิติ์':'SK'}[name],eg=cd?ED(cd):null;
+  if(!d&&!eg){openDr(name,'','<div class="wpd">'+e(X('damp'))+'</div>'+srcs([['RID medium reservoirs','https://app.rid.go.th/reservoir/rsvmiddle']]));return}
+  var pct=eg?eg[6]:d[5],body='<div class="kg"><div><small>'+e(X('stor'))+'</small><b>'+f(pct,1)+'%</b><i>'+f(eg?eg[5]:d[4],0)+' mcm</i></div><div><small>'+e(X('inf'))+'</small><b>'+f(eg?eg[3]:d[6])+'</b><i>mcm/day</i></div><div><small>'+e(X('rel'))+'</small><b>'+f(eg?eg[4]:d[7])+'</b><i>mcm/day</i></div><div><small>'+e(X('time'))+'</small><b style="font-size:.9rem">'+e(d?d[10]:'')+'</b></div></div>';
+  if(eg&&eg[8]!=null){body+='<h5>'+e(X('rule'))+'</h5><div class="wrc"><div class="band" style="left:'+eg[8]+'%;width:'+Math.max(0,eg[9]-eg[8])+'%"></div><div class="now" style="left:calc('+Math.min(100,pct)+'% - 1px)"></div></div><div class="wrcl"><span>0%</span><span>'+e(X('lower'))+' '+f(eg[8],0)+'% · '+e(X('upper'))+' '+f(eg[9],0)+'% · '+e(X('now'))+' '+f(pct,0)+'%</span><span>100%</span></div>'}
+  openDr(name,X('dam'),body+srcs([S_EG,S_RID,S_WM]))}
+function openRain(i,label){var q=PTS[i],cs=cliSite(i),near=(WMD.rain||[]).map(function(r){return[r,hv(q[2],q[1],r[1],r[2])]}).filter(function(z){return z[1]<=15}).sort(function(a,b){return a[1]-b[1]}).slice(0,4);
+  var body='<div class="kg"><div><small>'+e(X('rn'))+'</small><b>'+(near[0]?f(near[0][0][4],1):'–')+'</b><i>mm</i></div><div><small>'+e(X('rf'))+'</small><b>'+(cs&&cs.rain?f(cs.rain[1],1):'–')+'</b><i>mm'+(cs&&cs.rain&&cs.rain[2]?' · '+e(X('pk'))+' '+f(cs.rain[2],1)+' mm/h':'')+'</i></div></div>';
+  body+='<h5>'+e(L()==='th'?'สถานีวัดฝนใกล้เคียง':'Nearby rain gauges')+'</h5>'+(near.length?near.map(function(z){return'<div class="row" style="display:flex;justify-content:space-between;border-bottom:1px dashed #dfe7ee;padding:4px 0"><span>'+e(z[0][0])+' · '+z[1].toFixed(1)+' km</span><b>'+f(z[0][4],1)+' mm</b></div>'}).join(''):'<p class="note">–</p>');
+  if(!(cs&&cs.rain))body+='<div class="wpd" style="margin-top:10px">'+e(X('rainf'))+'</div>';
+  openDr(label,PTS[i][0],body+srcs([S_TW,S_DGO,S_OM,S_TMD]))}
+function openLand(i,label){var cs=cliSite(i),q=PTS[i],n=nearWL(q[2],q[1],15),body;
+  if(cs&&cs.elev!=null){body='<div class="kg"><div><small>'+e(X('elev'))+'</small><b>'+f(cs.elev,1)+'</b><i>m</i></div>'+(n?'<div><small>'+e(X('wl'))+' '+e(n.r[1])+'</small><b>'+f(n.r[6])+'</b><i>'+e(X('m'))+'</i></div>':'')+'</div>'+(n?'<p class="note">'+e(X('fz'))+': <b>'+f(cs.elev-n.r[6])+' m</b></p>':'')+'<p class="note">'+e(X('land'))+'</p>'}
+  else body='<div class="wpd">'+e(X('landp'))+'</div><p class="note">'+e(X('land'))+'</p>';
+  openDr(label,q[0],body+srcs([S_DEM,S_OM]))}
+function openPipe(label,site){openDr(label,site,'<div class="wpd">'+e(X('pipe'))+'</div>'+srcs([['Engineering / Utility / Maintenance (SCGP)','']]))}
+function openTide(code,label){var w=W(code),tdi=CLI&&CLI.tide?CLI.tide[code==='GLF001'?1:0]:null,body='';
+  if(w)body+='<div class="kg"><div><small>'+e(L()==='th'?'ระดับตรวจวัด':'Measured level')+' '+e(code)+'</small><b>'+f(w[6])+'</b><i>'+e(X('m'))+'</i></div><div><small>'+e(X('pct'))+'</small><b style="color:'+SC[sit(w)]+'">'+f(w[8],0)+'%</b></div></div>';
+  if(tdi&&tdi.h&&tdi.h.length){body+='<h5>'+e(L()==='th'?'น้ำทะเลคาดการณ์ 48 ชม. (ม.)':'Predicted sea level, 48 h (m)')+'</h5><div class="wch" id="wtd"></div>'}else body+='<div class="wpd" style="margin:10px 0">'+e(X('tidep'))+'</div>';
+  body+=w?trendBlock(w[0],w[10]):'';openDr(label,w?w[2]:'',body+srcs([S_TW,S_NAVY,S_OM]),function(b){wireTrend(b);var el=b.querySelector('#wtd');if(el&&tdi){lineChart(el,tdi.time.map(function(s,i){return[Date.parse(s+':00+07:00'),tdi.h[i]]}),null,'m')}})}
+
+/* ---------- Box 2: slots on the drawings ---------- */
+var SL={'Mae Krong Basin':[['rel',29,10.67,'VRK','วชิราลงกรณ'],['rel',60.6,10.67,'SNR','ศรีนครินทร์'],['flow',29,19.38,'K.37'],['flow',60.6,18.76,'K.35A'],['wl',33.15,34.31,'K.11A'],['flow',45,34.22,'K.11A'],['wl',33.15,41.42,'K.63'],['flow',45,41.42,'K.63'],['wl',33,58.76,'K.55A'],['flow',45,58.76,'K.55A'],
+  ['land',59.5,45.96,/^Wanglasa/,'Wangsala'],['rain',71.5,45.96,/^Wanglasa/,'Wangsala'],['pipe',83.9,45.96,'Wangsala'],['land',59.5,54.67,/^Banpong/,'Banpong'],['rain',71.5,54.67,/^Banpong/,'Banpong'],['pipe',83.9,54.67,'Banpong'],['rain',71.5,72.89,/Samut Songkhram/,'Prepack AP'],['tide',45.15,79.11,'MKG006']],
+ 'Chee Basin':[['rel',47.86,14.81,'UR','อุบลรัตน์'],['wl',47.86,33.33,'E.22B'],['rain',26,52.69,/^Phoenix/,'PPPC']],
+ 'Bangpakong Basin':[['wl',14.7,30.9,'Kgt.43A'],['wl',15.2,54.2,'Kgt.3'],['flow',54.8,47.3,'Kgt.13A'],['wl',55.1,54.7,'Kgt.13A'],['wl',73.7,36.3,'Kgt.12A'],['wl',74,57.4,'Kgt.10'],['rel',87.5,36.3,'','อ่างฯ พระปรง'],['rel',87.5,57.4,'','อ่างฯ พระสะทึง'],['land',41.6,25.5,/^Thai Cane Paper- Praj/,'TCP-PB'],['rain',53.8,25.5,/^Thai Cane Paper- Praj/,'TCP-PB'],['pipe',41.4,55.6,'TCP-PB']],
+ 'Chaopaya Basin':[['cwl',34.6,13.3,'C.2'],['cwl',34.6,24.3,'C.13'],['cwl',34.6,36.4,'C.29A'],['wl',48.3,45.3,'CPY012','TCNK'],['wl',48.3,51.2,'CPY014','TCPT'],['land',59.8,66.7,/^Tawana/,'TWN'],['land',59.8,72.3,/\(TCSP\)/,'TCSP'],['rain',71,66.7,/^Tawana/,'TWN'],['rain',71,72.3,/\(TCSP\)/,'TCSP'],['pipe',80.7,66.7,'TWN'],['pipe',80.7,72.3,'TCSP'],['tide',35,82.6,'GLF001']]};
+function slotVal(s){var k=s[0],v=null,u='',al=0,tt='',sub='';
+  if(k==='rel'){var a=s[3]?ED(s[3]):null,d=DM(s[4]);v=a?a[4]:(d?d[7]:null);u='mcm';tt=(L()==='th'?'น้ำระบาย ':'Release · ')+s[4];sub=a?'กฟผ. '+(WMD.egat.at||''):(d?'สสน./ชป. '+d[10]:X('damp'))}
+  else if(k==='flow'){var t=EG(s[3]),c=CW(s[3]);v=t&&t[3]?t[3]:(c&&c.q!=null?c.q:null);u='m³/s';tt=X('q')+' '+s[3];sub=t&&t[3]?'กฟผ. '+(WMD.egat.at||''):(c?'สสน./ชป. '+tsh(c.t):X('cwlp'));if(v!=null)v=f(v,1)}
+  else if(k==='wl'||k==='cwl'){var w=W(s[3]),c2=CW(s[3]);if(w){v=w[6];al=sit(w)>=5;tt=X('wl')+' '+s[3]+' '+w[2];sub=f(w[8],0)+'% · '+(X('sitn')[sit(w)]||'')+' · '+tsh(w[5])}else if(c2){v=k==='cwl'&&c2.q!=null?null:c2.wl;tt=s[3]+' '+c2.name;sub=tsh(c2.t);if(k==='cwl'&&c2.q!=null){v=f(c2.q,0);u='m³/s'}}else{tt=s[3];sub=X('cwlp')}if(!u)u='m';if(s[4])tt=s[4]+' ← '+tt}
+  else if(k==='rain'){var i=siteIdx(s[3]),q=PTS[i],r=q?nearRain(q[2],q[1],10):null;v=r?f(r.r[4],1):null;u='mm';tt=(L()==='th'?'ฝน 24 ชม. · ':'Rain 24 h · ')+s[4];var cs=cliSite(i);sub=(r?r.r[0]+' '+r.d.toFixed(1)+' km':'–')+(cs&&cs.rain?' · '+X('rf')+' '+f(cs.rain[1],1)+' mm':'')}
+  else if(k==='land'){var i2=siteIdx(s[3]),c3=cliSite(i2);v=c3&&c3.elev!=null?f(c3.elev,1):null;u='m';tt=X('elev')+' · '+s[4];sub=v!=null?'Copernicus DEM':X('landp')}
+  else if(k==='pipe'){tt=(L()==='th'?'ท่อและปั๊ม · ':'Pipe & pump · ')+s[3];sub=X('pipe')}
+  else if(k==='tide'){var w3=W(s[3]);v=w3?w3[6]:null;u='m';al=w3&&sit(w3)>=5;tt=(L()==='th'?'น้ำทะเลหนุน · ':'Tidal water · ')+s[3]+(w3?' '+w3[2]:'');sub=w3?f(w3[8],0)+'% · '+tsh(w3[5]):''}
+  if(v!=null&&typeof v==='number')v=f(v);return{v:v,u:u,al:al,tt:tt,sub:sub}}
+function slotClick(s){var k=s[0];if(k==='rel')openDam(s[4]);else if(k==='flow'||k==='wl'||k==='cwl')openStation(s[3]);else if(k==='rain'){var i=siteIdx(s[3]);if(i>=0)openRain(i,slotVal(s).tt)}else if(k==='land'){var j=siteIdx(s[3]);if(j>=0)openLand(j,slotVal(s).tt)}else if(k==='pipe')openPipe(slotVal(s).tt,s[3]);else if(k==='tide')openTide(s[3],slotVal(s).tt)}
+function bindOv(el,html,fn){el.addEventListener('mouseenter',function(){showTip(el,html())});el.addEventListener('mouseleave',hideTip);el.addEventListener('focus',function(){showTip(el,html())});el.addEventListener('blur',hideTip);el.addEventListener('click',function(){el.classList.add('act');fn()})}
+var LIST={'Mae Krong Basin':{w:['K.37','K.35A','KRN001','K.3A','K.11A','K.55A','RAJ002','RAJ001','MKG006'],d:['วชิราลงกรณ','ศรีนครินทร์']},'Chee Basin':{w:['E.22B','E.16A','CHI006','E.9'],d:['อุบลรัตน์']},'Bangpakong Basin':{w:['Kgt.43A','Kgt.3','Kgt.12A','Kgt.13A','SKE001','PRC004','Kgt.6','PRC005'],d:['นฤบดินทรจินดา','ขุนด่านปราการชล']},'Chaopaya Basin':{w:['S.9','S.32','HDA012','S.5','CPY012','CPY014','C.12','CPY015','GLF001'],d:['ภูมิพล','สิริกิติ์','ป่าสักชลสิทธิ์']}};
+function table(k){var Lb=LIST[k];if(!Lb)return'';var rows=Lb.w.map(W).filter(Boolean),dams=Lb.d.map(DM).filter(Boolean);
+  var s='<div class="wtb"><p class="wtt">'+e(X('lr'))+'</p><div class="scroll"><table><thead><tr><th>'+e(X('st'))+'</th><th class="hm">'+e(X('riv'))+'</th><th class="wnum">'+e(X('wl'))+'</th><th class="wnum">'+e(X('bank'))+'</th><th class="wnum hm">'+e(X('gap'))+'</th><th>'+e(X('pct'))+'</th><th class="hm">'+e(X('time'))+'</th></tr></thead><tbody>';
+  rows.forEach(function(w){var c=sit(w),p=Math.max(0,Math.min(100,w[8]||0));s+='<tr data-st="'+e(w[1])+'" tabindex="0"><td><b>'+e(w[1])+'</b> '+e(w[2])+'</td><td class="hm">'+e(w[14])+'</td><td class="wnum">'+f(w[6])+'</td><td class="wnum">'+f(w[10])+'</td><td class="wnum hm">'+(w[13]?'<span style="color:#e60000">'+e(X('ovr'))+'</span>':f(w[12]))+'</td><td><span class="pb"><span style="width:'+p+'%;background:'+SC[c]+'"></span></span> <b style="color:'+SC[c]+'">'+f(w[8],0)+'%</b> <small>'+e(X('sitn')[c]||'')+'</small></td><td class="tm hm">'+e(tsh(w[5]))+'</td></tr>'});
+  s+='</tbody></table></div>';if(dams.length){s+='<div class="scroll"><table><thead><tr><th>'+e(X('dam'))+'</th><th class="wnum">'+e(X('stor'))+'</th><th class="wnum">'+e(X('inf'))+'</th><th class="wnum">'+e(X('rel'))+'</th><th class="hm">'+e(X('time'))+'</th></tr></thead><tbody>';
+  dams.forEach(function(d){s+='<tr data-dam="'+e(d[1])+'" tabindex="0"><td><b>'+e(d[1])+'</b></td><td class="wnum">'+f(d[5],1)+'%</td><td class="wnum">'+f(d[6])+'</td><td class="wnum">'+f(d[7])+'</td><td class="tm hm">'+e(d[10]||'')+'</td></tr>'});s+='</tbody></table></div><p class="dsrc">'+e(X('mcm'))+'</p>'}return s+'</div>'}
+function augDash(){var o=document.getElementById('fdash'),k=window.curB;if(!o||!k)return;o.querySelectorAll('.dsrc').forEach(function(p){p.remove()});var dov=o.querySelector('.dov');
+  if(SL[k]){if(!dov){var im=o.querySelector('img');if(im){dov=document.createElement('div');dov.className='dov';im.parentNode.insertBefore(dov,im);dov.appendChild(im)}}
+    if(dov){dov.querySelectorAll('.dv,.wov').forEach(function(x){x.remove()});SL[k].forEach(function(s){var r=slotVal(s),b=document.createElement('button');b.type='button';b.className='wov'+(r.al?' al':'')+(r.v==null?' pd':'');b.style.left=s[1]+'%';b.style.top=s[2]+'%';b.innerHTML=(r.v==null?'–':e(r.v))+(r.v!=null&&r.u?'<small>'+e(r.u)+'</small>':'');b.setAttribute('aria-label',r.tt);
+      bindOv(b,function(){var z=slotVal(s);return'<div class="t">'+e(z.tt)+'</div><div class="v">'+(z.v==null?e(X('pend')):e(z.v)+' '+e(z.u))+'</div><div class="s">'+e(z.sub)+'</div><div class="h">'+e(L()==='th'?'คลิกเพื่อดูรายละเอียด':'Click for details')+'</div>'},function(){slotClick(s)});dov.appendChild(b)})}
+    o.insertAdjacentHTML('beforeend','<p class="dsrc">'+e(X('ds'))+'</p>')}
+  o.insertAdjacentHTML('beforeend',table(k));o.querySelectorAll('tr[data-st]').forEach(function(tr){tr.onclick=function(){openStation(tr.dataset.st)};tr.onkeydown=function(ev){if(ev.key==='Enter')openStation(tr.dataset.st)}});o.querySelectorAll('tr[data-dam]').forEach(function(tr){tr.onclick=function(){openDam(tr.dataset.dam)}})}
+var oRD=window.renderDash;window.renderDash=function(){oRD.apply(this,arguments);augDash()};renderDash=window.renderDash;
+
+/* ---------- Box 3: Wangsala zones + what-if; other complexes: risk profile ---------- */
+var ZN=[[19.55,56.17,18,'Solar farm'],[30.75,56.17,19,'Paper storage yard 2'],[44.2,38.18,20,'Pulp storage yard TPC-WS'],[44.2,46.79,20,'Paper yard 2 (office RM)'],[44.01,55.68,20,'Paper bag production (IBB)'],
+ [57.57,13.73,21,'ETP wastewater treatment'],[57.52,22.38,21,'Paper storage yard 1'],[57.52,30.34,21,'Business partner maintenance shop'],[57.52,38.92,21,'Molded pulp WS'],[57.62,47.62,21,'SFT-WS'],[57.41,56.08,21,'Floodgate PB#18'],
+ [72.9,13.8,22,'Waste paper storage yard 3'],[72.9,22.31,22,'Front office (garden)'],[72.9,30.4,22,'Warehouses 6789'],[72.8,39.14,22,'Gate park2 energy'],[72.9,47.44,22,'Container cargo truck parking yard 1'],[72.9,55.96,22,'TPC-WS'],[86.55,13.3,27,'Sports field flat apartments'],
+ [3.26,85.68,12.5,'Bridge'],[15.26,85.52,12.5,'Street'],[10.4,95.43,8.7,'Pipe outlet']];
+var WIF=null;
+function wsUpdate(o){var w=W('K.11A');if(!w)return;var cur=w[6],lv=WIF==null?cur:WIF,fl=0,nx=null;
+  o.querySelectorAll('.wz').forEach(function(b){var z=ZN[+b.dataset.z],f2=lv>=z[2];b.classList.toggle('fl',f2);if(f2)fl++;else if(z[2]>=lv&&(!nx||z[2]<nx[2]))nx=z});
+  o.querySelectorAll('.wzl button').forEach(function(b){var z=ZN[+b.dataset.z];b.classList.toggle('fl',lv>=z[2]);b.querySelector('.fb').textContent=lv>=z[2]?X('under')+' '+(lv-z[2]).toFixed(2)+' m':'+'+(z[2]-lv).toFixed(2)+' m'});
+  var out=o.querySelector('output');if(out)out.textContent='+'+lv.toFixed(2)+' m';var sm=o.querySelector('.wsum');if(sm)sm.innerHTML=(fl?'<b style="color:#e60000">'+fl+' '+e(X('fl'))+'</b>':e(X('nf')))+(nx?' · '+e(X('nx'))+': '+e(nx[3])+' +'+nx[2]+' ('+(nx[2]-lv).toFixed(2)+' m)':'');
+  var sx=o.querySelector('.wsx');if(sx)sx.innerHTML='<div><b style="color:'+(12.5-lv<.5?'#e60000':'#14384f')+'">'+Math.abs(12.5-lv).toFixed(2)+' m</b><span>'+e(lv>12.5?X('wsa2'):X('wsa'))+'</span></div><div><b>'+(lv-8.7).toFixed(2)+' m</b><span>'+e(X('wsb'))+'</span></div><div><b style="color:'+(lv>=18?'#e60000':'#14384f')+'">'+Math.abs(18-lv).toFixed(2)+' m</b><span>'+e(lv>=18?X('wsz2'):X('wsz'))+' (Solar farm +18)</span></div>'}
+function augWS(o){var im=o.querySelector('img');if(!im)return;var d=document.createElement('div');d.className='dov';im.parentNode.insertBefore(d,im);d.appendChild(im);var w=W('K.11A');
+  if(w){var b=document.createElement('button');b.type='button';b.className='wov big'+(w[6]>=12.5?' al':'');b.style.left='10.1%';b.style.top='34.84%';b.innerHTML='+'+f(w[6])+'<small>MSL</small><em>'+e(w[1])+' · '+e(tsh(w[5]))+'</em>';bindOv(b,function(){return'<div class="t">K.11A '+e(w[2])+'</div><div class="v">+'+f(w[6])+' m</div><div class="s">'+e(X('wsc'))+'</div>'},function(){openStation('K.11A')});d.appendChild(b)}
+  ZN.forEach(function(z,i){var bt=document.createElement('button');bt.type='button';bt.className='wz';bt.dataset.z=i;bt.style.left=z[0]+'%';bt.style.top=z[1]+'%';bt.setAttribute('aria-label',z[3]+' +'+z[2]);
+    bindOv(bt,function(){var lv=WIF==null?(w?w[6]:0):WIF,df=z[2]-lv;return'<div class="t">'+e(z[3])+'</div><div class="v">+'+z[2]+' m MSL</div><div class="s">'+(df>0?e(X('fz'))+' +'+df.toFixed(2)+' m':e(X('under'))+' '+(-df).toFixed(2)+' m')+'</div>'},function(){hl(i)});d.appendChild(bt)});
+  var cur=w?w[6]:12;o.insertAdjacentHTML('beforeend','<div class="wwi"><label for="wif">'+e(X('wif'))+'</label><output for="wif">+'+cur.toFixed(2)+' m</output><input id="wif" type="range" min="8" max="28" step="0.05" value="'+cur+'"><div class="wsum"></div><div class="wrow"><button type="button" class="wbtn" data-v="cur">'+e(X('reset'))+' (+'+cur.toFixed(2)+')</button><button type="button" class="wbtn" data-v="12.5">+12.50</button><button type="button" class="wbtn" data-v="18">+18</button><button type="button" class="wbtn" data-v="21">+21</button><button type="button" class="wbtn" data-v="22">+22</button></div></div><div class="wsx"></div><div class="wzl">'+
+    ZN.map(function(z,i){return'<button type="button" data-z="'+i+'"><span class="lv">'+z[2]+'</span><span>'+e(z[3])+'</span><span class="fb"></span></button>'}).join('')+'</div><p class="dsrc">'+e(X('wsc'))+' '+e(X('hz'))+'</p>');
+  var rg=o.querySelector('#wif');rg.oninput=function(){WIF=+rg.value;wsUpdate(o)};o.querySelectorAll('.wwi .wbtn').forEach(function(b){b.onclick=function(){WIF=b.dataset.v==='cur'?null:+b.dataset.v;rg.value=WIF==null?cur:WIF;wsUpdate(o)}});
+  o.querySelectorAll('.wzl button').forEach(function(b){b.onmouseenter=function(){hl(+b.dataset.z,1)};b.onmouseleave=function(){hl(-1,1)};b.onclick=function(){hl(+b.dataset.z)}});
+  function hl(i,soft){o.querySelectorAll('.wz,.wzl button').forEach(function(x){x.classList.toggle('hl',+x.dataset.z===i)});if(!soft&&i>=0){var t=o.querySelector('.wzl button[data-z="'+i+'"]');if(t&&t.scrollIntoView)t.scrollIntoView({block:'nearest',behavior:'smooth'})}}
+  wsUpdate(o)}
+var CX={'Banpong Complex':/^Banpong/,'Thai Cane -PB':/^Thai Cane Paper- Praj/,'Prepack-AP':/Samut Songkhram/,'Dayasa':/Dayasa/,'UPPC':/^United Pulp/};
+function profile(o,name){var i=siteIdx(CX[name]||/^$/);if(i<0){o.innerHTML='<p class="dm">'+e(T('fsoon'))+'</p>';return}var q=PTS[i],n=nearWL(q[2],q[1],15),rn=nearRain(q[2],q[1],10),cs=cliSite(i),w=n?n.r:null;
+  var h='<div class="wpf"><div><h4>'+e(name)+' · '+e(X('prof'))+'</h4><p class="sub">'+e(q[0])+' · '+e(country(q))+(basinOf(i)?' · '+e(basinName(basinOf(i))):'')+'</p><div class="kg">'+
+   (w?'<div><small>'+e(X('wl'))+' '+e(w[1])+' ('+n.d.toFixed(1)+' km)</small><b>'+f(w[6])+'</b> m</div><div><small>'+e(X('bank'))+'</small><b>'+f(w[10])+'</b> m</div><div><small>'+e(X('pct'))+'</small><b style="color:'+SC[sit(w)]+'">'+f(w[8],0)+'%</b></div>':'')+
+   '<div><small>'+e(X('rn'))+'</small><b>'+(rn?f(rn.r[4],1):'–')+'</b> mm</div><div><small>'+e(X('rf'))+'</small><b>'+(cs&&cs.rain?f(cs.rain[1],1):'–')+'</b> mm</div><div><small>'+e(X('elev'))+'</small><b>'+(cs&&cs.elev!=null?f(cs.elev,1):'–')+'</b> m</div></div>'+
+   (w?'':'<p class="note dsrc">'+e(X('nosite'))+'</p>')+(cs?'':'<p class="dsrc">'+e(X('nocli'))+'</p>')+'</div><div>'+(w?'<p class="sub" style="margin:0 0 6px"><b>'+e(X('lad'))+'</b></p><div class="wlad"></div><div class="wwi"><label for="wpr">'+e(X('wif'))+'</label><output>+'+f(w[6])+' m</output><input id="wpr" type="range" min="'+Math.floor(Math.min(w[6],(cs&&cs.elev!=null?cs.elev:w[6]))-3)+'" max="'+Math.ceil(Math.max(w[10]||w[6],cs&&cs.elev!=null?cs.elev:0)+3)+'" step="0.05" value="'+w[6]+'"><div class="wsum"></div></div>'+trendBlock(w[0],w[10]):'')+'</div></div>';
+  o.innerHTML=h;if(!w)return;var lad=o.querySelector('.wlad'),rg=o.querySelector('#wpr'),out=o.querySelector('.wwi output'),sm=o.querySelector('.wsum'),gr=cs&&cs.elev!=null?cs.elev:null;
+  function draw(){var lv=+rg.value,Wd=lad.clientWidth,H=lad.clientHeight;if(!Wd)return;var lo=+rg.min,hi=+rg.max,Y=function(v){return 14+(hi-v)/(hi-lo)*(H-28)};var mk=function(v,c,t,dash){return'<line x1="56" x2="'+(Wd-10)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="'+c+'" stroke-width="2"'+(dash?' stroke-dasharray="5 4"':'')+'/><text x="'+(Wd-12)+'" y="'+(Y(v)-5)+'" text-anchor="end" font-size="11" fill="'+c+'">'+e(t)+' +'+v.toFixed(2)+'</text>'};
+    var ticks='';for(var v=Math.ceil(lo);v<=hi;v+=Math.max(1,Math.round((hi-lo)/6)))ticks+='<text x="48" y="'+(Y(v)+4)+'" text-anchor="end" font-size="10" fill="#4a6a82">'+v+'</text><line x1="52" x2="56" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#9fb3c3"/>';
+    lad.innerHTML='<svg><rect x="56" y="'+Y(lv)+'" width="'+(Wd-66)+'" height="'+(H-14-Y(lv))+'" fill="rgba(48,112,184,.22)"/>'+ticks+(w[10]!=null?mk(w[10],'#e60000',X('bank'),1):'')+(gr!=null?mk(gr,'#7a5b2e',X('grd')):'')+mk(w[6],'#1e6f8c',X('cur'),1)+'<line x1="56" x2="'+(Wd-10)+'" y1="'+Y(lv)+'" y2="'+Y(lv)+'" stroke="#1d4ed8" stroke-width="2.5"/><text x="62" y="'+(Y(lv)+15)+'" font-size="11" font-weight="700" fill="#1d4ed8">'+e(X('wif'))+' +'+lv.toFixed(2)+'</text></svg>';
+    out.textContent='+'+lv.toFixed(2)+' m';var t=[];if(w[10]!=null)t.push(lv>=w[10]?'<b style="color:#e60000">'+e(X('ovr'))+' +'+(lv-w[10]).toFixed(2)+' m</b>':e(X('gap'))+' '+(w[10]-lv).toFixed(2)+' m');if(gr!=null)t.push(lv>=gr?'<b style="color:#e60000">'+e(X('grd'))+' '+e(X('under'))+' '+(lv-gr).toFixed(2)+' m</b>':e(X('grd'))+' '+e(X('fz'))+' '+(gr-lv).toFixed(2)+' m');sm.innerHTML=t.join(' · ')}
+  rg.oninput=draw;draw();if(window.ResizeObserver)new ResizeObserver(draw).observe(lad);wireTrend(o)}
+function augFD(){var o=document.getElementById('fdash3');if(!o)return;if(window.curF==='Wangsala Complex')augWS(o);else profile(o,window.curF)}
+var oFD=window.renderFD;window.renderFD=function(){oFD.apply(this,arguments);augFD()};renderFD=window.renderFD;
+
+function redraw(){drawFeed();kpi();if(document.getElementById('fdash'))renderDash();if(document.getElementById('fdash3'))renderFD();var s3=document.getElementById('s3');if(s3&&!s3.hidden&&window.selI>=0&&s3.classList.contains('wcard'))showCard(selI)}
+var oAL=window.applyLang;window.applyLang=function(){oAL.apply(this,arguments);drawFeed()};applyLang=window.applyLang;
+redraw();
+direct.ok=false;direct('/api/water').then(function(j){direct.ok=true;setWater(j);NEXT=Date.now()+POLL;direct('/api/climate').then(setCli,function(){setCli(null)})}).catch(function(){
+  if(window.claude&&claude.use){MSG=X('conn');drawFeed();claude.use('mcp').then(function(m){MCP=m;if(!m){MSG=X('noc');drawFeed();return}loadAll(false)}).catch(function(){MSG=X('noc');drawFeed()})}
+  else{MSG=X('noc');drawFeed()}});
+})();

@@ -1,0 +1,12 @@
+{
+  "regions": ["sin1"],
+  "outputDirectory": "public",
+  "functions": {
+    "api/climate.js": { "maxDuration": 40 },
+    "api/water.js": { "maxDuration": 50 },
+    "api/history.js": { "maxDuration": 30 }
+  },
+  "headers": [
+    { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }] }
+  ]
+}
