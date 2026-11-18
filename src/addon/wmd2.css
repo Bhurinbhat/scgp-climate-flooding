@@ -118,3 +118,42 @@
 @media(max-width:720px){.wpf{grid-template-columns:1fr}.wsx{grid-template-columns:1fr}}
 @media(max-width:600px){#fdash,#fdash3{overflow-x:auto;-webkit-overflow-scrolling:touch}#fdash .dov,#fdash3 .dov{min-width:760px}#fdash .dov .wov{font-size:1.5cqw}.wfeed .wti b{white-space:normal}.wzl{grid-template-columns:1fr}}
 .fp-g{grid-template-columns:minmax(0,1fr)}.fp-g>*,.bx{min-width:0}#fdash,#fdash3{max-width:100%}
+/* ---- motion ---- */
+.dov .wov .ic{width:1.15em;height:1.15em;vertical-align:-.18em;margin-right:.3em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.dov .wov .ic.off{opacity:.45}
+.ic-dam .dr{fill:#1e9bd7;stroke:none;animation:wdrip var(--d) ease-in infinite}
+.ic-dam .rp{stroke:#1e9bd7;stroke-width:1.5;transform-origin:12px 20px;animation:wrip var(--d) ease-out infinite}
+@keyframes wdrip{0%{transform:translateY(-3px);opacity:0}30%{opacity:1}100%{transform:translateY(4px);opacity:0}}
+@keyframes wrip{0%,55%{transform:scale(.2);opacity:0}70%{opacity:1}100%{transform:scale(2.4);opacity:0}}
+.ic-flow path{stroke:#1e9bd7;animation:wchev var(--d) linear infinite;opacity:.2}
+.ic-flow .c2{animation-delay:calc(var(--d)/3)}.ic-flow .c3{animation-delay:calc(var(--d)*2/3)}
+@keyframes wchev{0%{opacity:.2}30%{opacity:1}60%,100%{opacity:.2}}
+.ic-wl .fr{stroke:#4a6a82;stroke-width:1.5}
+.ic-wl .wv{stroke:none;opacity:.85;animation:wwave 2.4s linear infinite}
+@keyframes wwave{to{transform:translateX(-12px)}}
+.ic-rain .cl{fill:#cfdbe5;stroke:#7b93a8;stroke-width:1.2}
+.ic-rain .dp{stroke:#1e9bd7;stroke-width:1.8;animation:wdrop .9s linear infinite}.ic-rain .dp.no{display:none}
+@keyframes wdrop{0%{transform:translateY(-3px);opacity:0}30%{opacity:1}100%{transform:translateY(4px);opacity:0}}
+.ic-land path{fill:#b98b5a;stroke:#7a5b2e;stroke-width:1}.ic-land .gl{stroke:#7a5b2e}
+.ic-pump .fr{stroke:#4a6a82;stroke-width:1.5}.ic-pump .fan{fill:#1e6f8c;stroke:none;transform-origin:12px 12px;animation:wspin 2.2s linear infinite}
+.ic-pump.off .fan{animation-duration:6s}
+@keyframes wspin{to{transform:rotate(360deg)}}
+.ic-tide .tw{animation:wtide 2.6s linear infinite}.ic-tide path{stroke:#1e9bd7;stroke-width:2}
+@keyframes wtide{to{transform:translateX(12px)}}
+/* status blink: high = slow blue pulse, critical = fast red blink */
+.dov .wov.st4{animation:wst4 2.4s ease-in-out infinite}
+.dov .wov.st5{animation:wst5 1s steps(2,jump-none) infinite;color:#e60000}
+@keyframes wst4{0%,100%{box-shadow:0 0 0 0 rgba(29,78,216,0)}50%{box-shadow:0 0 0 .45em rgba(29,78,216,.28)}}
+@keyframes wst5{0%{box-shadow:0 0 0 .3em rgba(230,0,0,.45);background:rgba(230,0,0,.12)}100%{box-shadow:0 0 0 0 rgba(230,0,0,0);background:transparent}}
+/* rivers */
+.dov .wfl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.wfl .rv{fill:none;stroke:#bdf0ff;stroke-width:.45;stroke-dasharray:1.2 3;stroke-linecap:round;vector-effect:non-scaling-stroke;stroke-width:3px;animation:wflow var(--d) linear infinite;opacity:.95}
+.wfl .dl{fill:none;stroke:#1e6f8c;stroke-width:1.6px;vector-effect:non-scaling-stroke;stroke-dasharray:2 5;animation:wflow 3s linear infinite;opacity:.55}
+@keyframes wflow{to{stroke-dashoffset:-8.4}}
+/* Wangsala */
+.dov .wsw{position:absolute;left:0;width:15.5%;top:91%;height:9%;pointer-events:none;opacity:.55}
+.dov .wsw path{fill:#5fc8f0;animation:wsea 3s linear infinite}
+@keyframes wsea{to{transform:translateX(20px)}}
+.dov .wz.fl{animation:wzbl 1.1s ease-in-out infinite}
+@keyframes wzbl{0%,100%{box-shadow:0 0 0 .35cqw #e60000;background:rgba(230,0,0,.3)}50%{box-shadow:0 0 0 .9cqw rgba(230,0,0,.25);background:rgba(230,0,0,.08)}}
+@media(prefers-reduced-motion:reduce){.dov .ic *,.dov .wov,.wfl path,.dov .wsw path,.dov .wz.fl{animation:none!important}}
