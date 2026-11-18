@@ -157,3 +157,4 @@
 .dov .wz.fl{animation:wzbl 1.1s ease-in-out infinite}
 @keyframes wzbl{0%,100%{box-shadow:0 0 0 .35cqw #e60000;background:rgba(230,0,0,.3)}50%{box-shadow:0 0 0 .9cqw rgba(230,0,0,.25);background:rgba(230,0,0,.08)}}
 @media(prefers-reduced-motion:reduce){.dov .ic *,.dov .wov,.wfl path,.dov .wsw path,.dov .wz.fl{animation:none!important}}
+.dov .wov .na{font-size:.72em;font-weight:600;color:#8a97a3;letter-spacing:.02em}

@@ -31,6 +31,16 @@ async function stations() {
   return { rows: out, fields: rows[0] ? Object.keys(rows[0]) : [] };
 }
 
+
+// กรมชลประทาน: medium reservoirs (Prapong, Prasatung) — same JSON the RID reservoir page loads
+async function reservoirs() {
+  const r = await fetch('https://app.rid.go.th/reservoir/api/rsvmiddles', { method: 'POST', headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'date=&region=&percent=&percent_from=&percent_to=&status=1', signal: AbortSignal.timeout(25000) });
+  if (!r.ok) throw new Error('rsvmiddles HTTP ' + r.status);
+  const d = await r.json(), out = [];
+  (function walk(o) { if (!o || typeof o !== 'object') return; if (Array.isArray(o)) return o.forEach(walk); if (o.nresv && /พระปรง|สะทึง/.test(o.nresv)) out.push({ name: o.nresv, date: o.date, lat: num(o.cresv_lat), lng: num(o.cresv_lng), cap: num(o.cap_resv), vol: num(o.qdisc_curr), pct: num(o.percent_resv_curr), inflow: num(o.q_info), outflow: num(o.q_outfo), province: o.tprov }); else Object.values(o).forEach(walk); })(d);
+  return out;
+}
+
 async function rain() {
   const d = await j('https://api.open-meteo.com/v1/forecast?' + ll(sites) + '&hourly=precipitation&past_days=1&forecast_days=2&timezone=Asia%2FBangkok');
   const arr = Array.isArray(d) ? d : [d];
@@ -67,8 +77,8 @@ async function rpc(fn, args) {
 }
 
 module.exports = async (req, res) => {
-  const names = ['stations', 'rain', 'elev', 'tide'];
-  const r = await Promise.allSettled([stations(), rain(), elev(), tide()]);
+  const names = ['stations', 'rain', 'elev', 'tide', 'reservoirs'];
+  const r = await Promise.allSettled([stations(), rain(), elev(), tide(), reservoirs()]);
   let body = { fetchedAt: new Date().toISOString(), sites: sites.map((s) => s[0]), errors: [], source: 'live' };
   r.forEach((x, i) => { if (x.status === 'fulfilled') body[names[i]] = x.value; else body.errors.push(names[i] + ': ' + x.reason.message); });
   if (SB && SBK) {
