@@ -158,3 +158,30 @@
 @keyframes wzbl{0%,100%{box-shadow:0 0 0 .35cqw #e60000;background:rgba(230,0,0,.3)}50%{box-shadow:0 0 0 .9cqw rgba(230,0,0,.25);background:rgba(230,0,0,.08)}}
 @media(prefers-reduced-motion:reduce){.dov .ic *,.dov .wov,.wfl path,.dov .wsw path,.dov .wz.fl{animation:none!important}}
 .dov .wov .na{font-size:.72em;font-weight:600;color:#8a97a3;letter-spacing:.02em}
+/* v6: no blinking frames */
+.dov .wov.st4,.dov .wov.st5{animation:none}
+.dov .wov.st5{color:#e60000}
+.dov .wov:hover,.dov .wov.act{box-shadow:none;background:rgba(30,111,140,.08)}
+/* map pan */
+.wpan{position:absolute;bottom:18px;width:30px;height:30px;border-radius:50%;border:0;background:#fff;color:#14384f;display:grid;place-items:center;font-size:.8rem;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(20,56,79,.25);z-index:3;padding:0}
+.wpan.l{right:88px}.wpan.r{right:52px}
+.wpan:focus-visible,#map:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px}
+#map{touch-action:pan-y}
+/* slot cards (phones) */
+.wslots{display:none}
+.wsc{font:inherit;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;column-gap:8px;align-items:center;text-align:left;background:#fff;border:1px solid rgba(20,56,79,.14);border-radius:10px;padding:8px 10px;cursor:pointer;color:#14384f;min-height:48px}
+.wsc .ic{grid-row:1/3;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.wsc .t{font-size:.7rem;color:#4a6a82;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wsc b{font-size:.95rem;font-variant-numeric:tabular-nums}.wsc b small{font-size:.7em;color:#4a6a82;font-weight:500}
+.wsc.st5 b{color:#e60000}.wsc.st4 b{color:#1d4ed8}
+@media(max-width:700px){
+  #fdash,#fdash3{overflow-x:visible}
+  #fdash .dov,#fdash3 .dov{min-width:0}
+  #fdash .dov .wov{font-size:0;padding:0;width:6.6%;height:4.2%;min-height:14px;justify-content:center;display:flex;align-items:center}
+  #fdash .dov .wov .ic{width:14px;height:14px;margin:0;font-size:12px}
+  #fdash .dov .wov small,#fdash .dov .wov .na{display:none}
+  .wslots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+  .dov .wov.big{font-size:3.6cqw}
+  .wpan.l{right:88px;bottom:14px}.wpan.r{right:52px;bottom:14px}
+}
+@media(max-width:380px){.wslots{grid-template-columns:1fr}}

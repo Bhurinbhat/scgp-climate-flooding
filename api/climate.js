@@ -7,7 +7,7 @@
 const sites = require('./_lib/climate-sites.json');
 const TW = 'https://api-v3.thaiwater.net/api/v1/thaiwater30/public/waterlevel_load';
 const TWH = { 'User-Agent': 'Mozilla/5.0 (SCGP BCM Water Dashboard)', Referer: 'https://www.thaiwater.net/', Accept: 'application/json' };
-const CODES = ['C.2', 'C.13', 'C.29A', 'C.7A', 'K.63', 'K.11A', 'K.55A', 'K.37', 'K.35A', 'Kgt.10', 'Kgt.13A', 'Kgt.3', 'Kgt.43A', 'Kgt.12A', 'E.22B', 'CPY012', 'CPY014', 'GLF001', 'MKG006'];
+const CODES = ['K.79', 'C.2', 'C.13', 'C.29A', 'C.7A', 'K.63', 'K.11A', 'K.55A', 'K.37', 'K.35A', 'Kgt.10', 'Kgt.13A', 'Kgt.3', 'Kgt.43A', 'Kgt.12A', 'E.22B', 'CPY012', 'CPY014', 'GLF001', 'MKG006'];
 const MOUTHS = [['Mae Klong mouth', 13.33, 99.99], ['Chao Phraya mouth', 13.45, 100.6]];
 
 function num(x) { return x == null || x === '' || isNaN(+x) ? null : +x; }
@@ -39,6 +39,16 @@ async function reservoirs() {
   const d = await r.json(), out = [];
   (function walk(o) { if (!o || typeof o !== 'object') return; if (Array.isArray(o)) return o.forEach(walk); if (o.nresv && /พระปรง|สะทึง/.test(o.nresv)) out.push({ name: o.nresv, date: o.date, lat: num(o.cresv_lat), lng: num(o.cresv_lng), cap: num(o.cap_resv), vol: num(o.qdisc_curr), pct: num(o.percent_resv_curr), inflow: num(o.q_info), outflow: num(o.q_outfo), province: o.tprov }); else Object.values(o).forEach(walk); })(d);
   return out;
+}
+
+
+// กรมชลประทาน: large reservoirs (data.go.th "อ่างเก็บน้ำขนาดใหญ่" → app.rid.go.th/reservoir/api/dam/public)
+async function bigdams() {
+  const r = await fetch('https://app.rid.go.th/reservoir/api/dam/public', { headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' }, signal: AbortSignal.timeout(25000) });
+  if (!r.ok) throw new Error('rid dam HTTP ' + r.status);
+  const d = await r.json(), out = [];
+  (d.data || []).forEach((g) => (g.dam || []).forEach((x) => out.push({ id: x.id, name: x.name, region: g.region, owner: x.owner, cap: num(x.capacity), vol: num(x.volume), active: num(x.active_storage), pct: num(x.percent_storage), inflow: num(x.inflow), outflow: num(x.outflow) })));
+  return { date: d.date, dams: out };
 }
 
 async function rain() {
@@ -77,8 +87,8 @@ async function rpc(fn, args) {
 }
 
 module.exports = async (req, res) => {
-  const names = ['stations', 'rain', 'elev', 'tide', 'reservoirs'];
-  const r = await Promise.allSettled([stations(), rain(), elev(), tide(), reservoirs()]);
+  const names = ['stations', 'rain', 'elev', 'tide', 'reservoirs', 'bigdams'];
+  const r = await Promise.allSettled([stations(), rain(), elev(), tide(), reservoirs(), bigdams()]);
   let body = { fetchedAt: new Date().toISOString(), sites: sites.map((s) => s[0]), errors: [], source: 'live' };
   r.forEach((x, i) => { if (x.status === 'fulfilled') body[names[i]] = x.value; else body.errors.push(names[i] + ': ' + x.reason.message); });
   if (SB && SBK) {
