@@ -28,7 +28,11 @@ function km(a, b, c, d) {
 }
 
 async function air4thai() {
-  const d = await j('http://air4thai.pcd.go.th/services/getNewAQI_JSON.php', null, 20000);
+  let d = null, err = null;
+  for (const u of ['https://air4thai.pcd.go.th/services/getNewAQI_JSON.php', 'http://air4thai.pcd.go.th/services/getNewAQI_JSON.php', 'http://air4thai.com/forweb/getAQI_JSON.php']) {
+    try { d = await j(u, { headers: Object.assign({ Referer: 'https://air4thai.pcd.go.th/' }, UA) }, 15000); if (d && d.stations) break; } catch (e) { err = e; d = null; }
+  }
+  if (!d) throw new Error((err && (err.cause && err.cause.code || err.message)) || 'no data');
   const st = (d.stations || []).filter((s) => s.AQILast && s.AQILast.PM25 && +s.AQILast.PM25.value >= 0);
   // Thai sites are the first 28 rows of climate-sites.json
   return sites.slice(0, 28).map((p) => {
