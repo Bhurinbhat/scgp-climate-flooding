@@ -6,6 +6,7 @@
 //  - Royal Irrigation Department: large reservoirs (dam/public) and medium reservoirs (rsvmiddles)
 // The response keeps the compact text format the page parses (one line per site, '|' separated).
 const sites = require('./_lib/climate-sites.json');
+const tls = require('tls'), https = require('https');
 const TZ = 'Asia/Bangkok';
 const DAMS = ['ศรีนครินทร์', 'วชิราลงกรณ', 'ภูมิพล', 'สิริกิติ์', 'แควน้อยบำรุงแดน', 'ป่าสักชลสิทธิ์', 'อุบลรัตน์', 'ลำปาว', 'ขุนด่านปราการชล', 'หนองปลาไหล', 'ประแสร์', 'คลองสียัด', 'บางพระ'];
 const UA = { 'User-Agent': 'Mozilla/5.0 (SCGP BCM Climate Dashboard)', Accept: 'application/json' };
@@ -27,11 +28,39 @@ function km(a, b, c, d) {
   return 2 * 6371 * Math.asin(Math.sqrt(h));
 }
 
+
+// air4thai.pcd.go.th serves its certificate without the intermediate CA, which Node does not fetch by itself.
+// Do what browsers do (AIA chasing): read the "CA Issuers" URL from the server certificate, download that
+// intermediate, and verify the connection normally against Node's root store plus that intermediate.
+let A4CA = null;
+function peerCert(host) {
+  return new Promise((ok, no) => {
+    const s = tls.connect(443, host, { servername: host, rejectUnauthorized: false }, () => { const c = s.getPeerCertificate(false); s.end(); ok(c); });
+    s.on('error', no); s.setTimeout(10000, () => s.destroy(new Error('tls timeout')));
+  });
+}
+async function issuerPem(host) {
+  if (A4CA) return A4CA;
+  const c = await peerCert(host), uri = c && c.infoAccess && c.infoAccess['CA Issuers - URI'];
+  if (!uri || !uri[0]) throw new Error('no AIA');
+  const r = await fetch(uri[0], { signal: AbortSignal.timeout(10000) });
+  const b = Buffer.from(await r.arrayBuffer()), t = b.toString('latin1');
+  A4CA = t.indexOf('-----BEGIN') >= 0 ? t : '-----BEGIN CERTIFICATE-----\n' + b.toString('base64').match(/.{1,64}/g).join('\n') + '\n-----END CERTIFICATE-----\n';
+  return A4CA;
+}
+async function getJsonTls(url) {
+  const host = new URL(url).hostname, ca = tls.rootCertificates.concat([await issuerPem(host)]);
+  return new Promise((ok, no) => {
+    const q = https.get(url, { ca, headers: Object.assign({ Referer: 'https://air4thai.pcd.go.th/' }, UA), timeout: 15000 }, (r) => {
+      let d = ''; r.setEncoding('utf8'); r.on('data', (x) => { d += x; }); r.on('end', () => { try { ok(JSON.parse(d)); } catch (e) { no(new Error('air4thai: bad JSON (HTTP ' + r.statusCode + ')')); } });
+    });
+    q.on('error', no); q.on('timeout', () => q.destroy(new Error('air4thai timeout')));
+  });
+}
+
 async function air4thai() {
   let d = null, err = null;
-  for (const u of ['https://air4thai.pcd.go.th/services/getNewAQI_JSON.php', 'http://air4thai.pcd.go.th/services/getNewAQI_JSON.php', 'http://air4thai.com/forweb/getAQI_JSON.php']) {
-    try { d = await j(u, { headers: Object.assign({ Referer: 'https://air4thai.pcd.go.th/' }, UA) }, 15000); if (d && d.stations) break; } catch (e) { err = e; d = null; }
-  }
+  try { d = await getJsonTls('https://air4thai.pcd.go.th/services/getNewAQI_JSON.php'); } catch (e) { err = e; d = null; }
   if (!d) throw new Error((err && (err.cause && err.cause.code || err.message)) || 'no data');
   const st = (d.stations || []).filter((s) => s.AQILast && s.AQILast.PM25 && +s.AQILast.PM25.value >= 0);
   // Thai sites are the first 28 rows of climate-sites.json
