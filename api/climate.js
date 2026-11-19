@@ -57,6 +57,33 @@ async function bigdams() {
   return { date: d.date, dams: out };
 }
 
+
+// WaterWest (ติดตามลุ่มน้ำแม่กลอง, ข้อมูลกรมชลประทาน): stations missing from ThaiWater (K.63) and K.11A discharge
+const WW = ['K.63', 'K.11A'];
+const TM = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function thaiTime(x) { // "19 พ.ย. 09:00 น." → "2026-11-19 09:00:00" (Asia/Bangkok)
+  const m = x.match(/(\d{1,2})\s*(\S+?\.\S*?\.)\s*(\d{1,2}):(\d{2})/); if (!m) return x.trim();
+  const mo = TM.indexOf(m[2]); if (mo < 0) return x.trim();
+  const now = new Date(Date.now() + 7 * 3600e3); let y = now.getUTCFullYear(); if (mo > now.getUTCMonth() + 1) y--;
+  const p = (n) => String(n).padStart(2, '0');
+  return y + '-' + p(mo + 1) + '-' + p(+m[1]) + ' ' + p(+m[3]) + ':' + m[4] + ':00';
+}
+async function waterwest() {
+  const out = [];
+  await Promise.all(WW.map(async (code) => {
+    const url = 'https://waterwest.info/stations/' + code;
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (SCGP BCM Climate Dashboard)', Accept: 'text/html' }, signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return;
+    const t = (await r.text()).replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+    const m = t.match(/ระดับน้ำ\s*(-?[\d.]+)\s*ม\.รทก\.\s*·\s*ตลิ่ง\s*(-?[\d.]+)/);
+    if (!m) return;
+    const q = t.match(/ปริมาณน้ำ\s*([\d,.]+)\s*ลบ\.ม\./), when = t.match(/วัดเมื่อ\s*([^·]+?)\s*·/), name = t.match(new RegExp('(\\S[^·]{1,40}?)\\s*' + code.replace('.', '\\.') + '\\s*·\\s*กรมชลประทาน'));
+    const wl = num(m[1]), bank = num(m[2]);
+    out.push({ code, name: name ? name[1].trim().split(' ').slice(-2).join(' ') : code, wl, bank, q: q ? num(q[1].replace(/,/g, '')) : null, t: when ? thaiTime(when[1]) : null, river: 'แม่น้ำแม่กลอง', agency: 'ชป. (WaterWest)', src: url });
+  }));
+  return out;
+}
+
 async function rain() {
   const d = await j('https://api.open-meteo.com/v1/forecast?' + ll(sites) + '&hourly=precipitation&past_days=1&forecast_days=2&timezone=Asia%2FBangkok');
   const arr = Array.isArray(d) ? d : [d];
@@ -97,6 +124,15 @@ module.exports = async (req, res) => {
   const r = await Promise.allSettled([stations(), rain(), elev(), tide(), reservoirs(), bigdams()]);
   let body = { fetchedAt: new Date().toISOString(), sites: sites.map((s) => s[0]), errors: [], source: 'live' };
   r.forEach((x, i) => { if (x.status === 'fulfilled') body[names[i]] = x.value; else body.errors.push(names[i] + ': ' + x.reason.message); });
+  try {
+    const ww = await waterwest();
+    if (body.stations) ww.forEach((w) => {
+      const row = body.stations.rows.find((x) => x.code === w.code);
+      if (row) { if (row.q == null && w.q != null) { row.q = w.q; row.qsrc = w.src; } }
+      else body.stations.rows.push({ id: null, code: w.code, name: w.name, t: w.t, wl: w.wl, q: w.q, pct: null, sit: w.bank && w.wl != null ? (w.wl >= w.bank ? 5 : (w.bank - w.wl) < 1 ? 4 : 3) : null, bank: w.bank, river: w.river, agency: w.agency, src: w.src });
+    });
+    body.waterwest = ww;
+  } catch (e) { body.errors.push('waterwest: ' + e.message); }
   if (SB && SBK) {
     if (body.errors.length < names.length) {
       if (KEY) { try { body.stored = await rpc('climate_ingest', { p_key: KEY, p_payload: body }); } catch (e) { body.stored = 'error: ' + e.message; } }
