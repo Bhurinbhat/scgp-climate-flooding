@@ -34,7 +34,13 @@ async function stations() {
 
 // กรมชลประทาน: medium reservoirs (Prapong, Prasatung) — same JSON the RID reservoir page loads
 async function reservoirs() {
-  const r = await fetch('https://app.rid.go.th/reservoir/api/rsvmiddles', { method: 'POST', headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'date=&region=&percent=&percent_from=&percent_to=&status=1', signal: AbortSignal.timeout(25000) });
+  // today's report appears later in the day; fall back to the previous day's report until then
+  const day = (k) => new Date(Date.now() + 7 * 3600e3 - k * 864e5).toISOString().slice(0, 10);
+  for (const d of ['', day(1), day(2)]) { const out = await rsvDay(d); if (out.some((x) => x.vol != null)) return out; }
+  return rsvDay('');
+}
+async function rsvDay(date) {
+  const r = await fetch('https://app.rid.go.th/reservoir/api/rsvmiddles', { method: 'POST', headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'date=' + date + '&region=&percent=&percent_from=&percent_to=&status=1', signal: AbortSignal.timeout(20000) });
   if (!r.ok) throw new Error('rsvmiddles HTTP ' + r.status);
   const d = await r.json(), out = [];
   (function walk(o) { if (!o || typeof o !== 'object') return; if (Array.isArray(o)) return o.forEach(walk); if (o.nresv && /พระปรง|สะทึง/.test(o.nresv)) out.push({ name: o.nresv, date: o.date, lat: num(o.cresv_lat), lng: num(o.cresv_lng), cap: num(o.cap_resv), vol: num(o.qdisc_curr), pct: num(o.percent_resv_curr), inflow: num(o.q_info), outflow: num(o.q_outfo), province: o.tprov }); else Object.values(o).forEach(walk); })(d);
