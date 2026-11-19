@@ -3,6 +3,7 @@
   "outputDirectory": "public",
   "functions": {
     "api/climate.js": { "maxDuration": 40 },
+    "api/drought-air.js": { "maxDuration": 60 },
     "api/water.js": { "maxDuration": 50 },
     "api/history.js": { "maxDuration": 30 }
   },
