@@ -1,13 +1,54 @@
 {
-  "regions": ["sin1"],
+  "regions": [
+    "sin1"
+  ],
   "outputDirectory": "public",
   "functions": {
-    "api/climate.js": { "maxDuration": 40 },
-    "api/drought-air.js": { "maxDuration": 60 },
-    "api/water.js": { "maxDuration": 50 },
-    "api/history.js": { "maxDuration": 30 }
+    "api/climate.js": {
+      "maxDuration": 40
+    },
+    "api/drought-air.js": {
+      "maxDuration": 60
+    },
+    "api/water.js": {
+      "maxDuration": 50
+    },
+    "api/history.js": {
+      "maxDuration": 30
+    }
   },
   "headers": [
-    { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }] }
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    },
+    {
+      "source": "/media/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, s-maxage=604800"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/media/flood.mp4",
+      "destination": "https://videos.pexels.com/video-files/18153515/18153515-hd_1280_720_25fps.mp4"
+    },
+    {
+      "source": "/media/drought.mp4",
+      "destination": "https://videos.pexels.com/video-files/37533932/15903372_1280_720_30fps.mp4"
+    },
+    {
+      "source": "/media/air.mp4",
+      "destination": "https://videos.pexels.com/video-files/31370255/13386245_1280_720_24fps.mp4"
+    }
   ]
 }
