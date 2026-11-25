@@ -189,3 +189,7 @@
 /* Wangsala drawing v3: level boxes are pills */
 .dov .wz{width:7.6%;padding:0 0 2.95% 0;border-radius:999px}
 .wzl .lv{width:auto;min-width:46px;height:28px;border-radius:999px;padding:0 6px;font-size:.7rem}
+
+/* keep the animated river water clear of the PIPE / STREET level boxes */
+.dov .wsw{width:10.6%;z-index:0}
+.dov .wz{z-index:2}
