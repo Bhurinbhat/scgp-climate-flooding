@@ -88,9 +88,22 @@ function tip(s){var z=zoneOf(s.i),h='<b>'+esc(s.name)+'</b><br><span style="opac
  if(PAGE==='dr'){var d=drought(s),l=lv(DLV,d.sc);h+=X('ดัชนีภัยแล้ง ','Drought index ')+'<b style="color:'+l[3]+'">'+d.sc+' · '+ln(l)+'</b><br>'+X('ฝน 90 วัน ','Rain 90 d ')+d.p90+X('% ของค่าปกติ','% of normal')+'<br>'+X('สมดุลน้ำ 30 วัน ','Water balance 30 d ')+Math.round(d.wb)+' mm'+(d.dm!=null?'<br>'+X('อ่างฯ ในลุ่มน้ำ ต่ำสุด ','Lowest basin reservoir ')+d.dm.toFixed(0)+'%':'')}
  else{var p=pmOf(s),pl=lv(PLV,p),hl=lv(HLV,s.hi[THI]);h+='PM2.5 <b style="color:'+pl[3]+'">'+p+' µg/m³ · '+ln(pl)+'</b><br><small>'+(s.a4?'Air4Thai '+esc(s.a4.n)+' · '+s.a4.km+' km':'CAMS model')+'</small><br>'+X('ดัชนีความร้อนวันนี้ ','Heat index today ')+'<b style="color:'+hl[3]+'">'+s.hi[THI]+'°C · '+ln(hl)+'</b>'}
  return h+'<br><span style="opacity:.7;font-size:10px">'+X('คลิกเพื่อดูรายละเอียด','Click for details')+'</span>'}
-function drawMap(){var c=ch('dmap');if(!c)return;
+var DL=null,DLM=[],DLFAIL=false,DLZ=null;
+function dPin(c,sel){var w=sel?30:22,h=Math.round(w*32/24);return LF.divIcon({className:'lpin',html:'<svg width="'+w+'" height="'+h+'" viewBox="0 0 24 32"><path d="M12 1C5.9 1 1 5.8 1 11.7 1 19.6 12 31 12 31s11-11.4 11-19.3C23 5.8 18.1 1 12 1z" fill="'+c+'" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="11.7" r="4.3" fill="#fff"/></svg>',iconSize:[w,h],iconAnchor:[w/2,h],tooltipAnchor:[0,-h+4]})}
+function dView(){if(!DL)return;var ids=ZONE.s||D.map(function(s){return s.i});var b=LF.latLngBounds(ids.map(function(i){return [D[i].lat,D[i].lng]}));
+ if(ids.length===1)DL.flyTo(b.getCenter(),11,{duration:.8});else DL.flyToBounds(b.pad(ZONE.s?.25:.08),{maxZoom:11,duration:.8})}
+function drawMapL(){var el=$('dmap');
+ if(!DL){el.innerHTML='';DL=LF.map(el,{zoomControl:false,attributionControl:false,minZoom:2,maxZoom:18,zoomSnap:.5,zoomDelta:.5,wheelPxPerZoomLevel:90}).setView([7,108],4);
+  var base=LF.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19}),ref=LF.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19,pane:'overlayPane'}),ok=0;
+  base.on('tileload',function(){ok++});base.addTo(DL);ref.addTo(DL);LF.control.zoom({position:'bottomright'}).addTo(DL);LF.control.attribution({position:'bottomright',prefix:false}).addAttribution('Tiles &copy; Esri').addTo(DL);
+  setTimeout(function(){if(!ok&&DL){DLFAIL=true;DL.remove();DL=null;DLM=[];el.innerHTML='';drawMap()}},7000);DLZ=null}
+ else DL.invalidateSize();
+ DLM.forEach(function(m){m.remove()});DLM=D.map(function(s){var m=LF.marker([s.lat,s.lng],{icon:dPin(colorOf(s),s.i===SEL),zIndexOffset:s.i===SEL?2000:Math.round(score(s)*10),riseOnHover:true,keyboard:false});
+  m.bindTooltip(tip(s),{direction:'top',className:'lbl dtip',offset:[0,0]});m.on('click',function(){pick(s.i,true)});m.addTo(DL);return m});
+ if(DLZ!==ZONE){DLZ=ZONE;dView()}}
+function drawMap(){if(window.LF&&!DLFAIL&&!sec.hidden)return drawMapL();var c=ch('dmap');if(!c)return;
  c.setOption({tooltip:{trigger:'item',confine:true,backgroundColor:'rgba(20,56,79,.95)',textStyle:{fontSize:11},extraCssText:'border-radius:8px',formatter:function(p){return p.seriesType==='scatter'?tip(D[p.value[2]]):''}},
-  geo:{map:'world',roam:true,center:ZONE.c,zoom:ZONE.z,scaleLimit:{min:1.5,max:90},itemStyle:{areaColor:'#ffffff',borderColor:'#c5d0d8',borderWidth:.6},emphasis:{itemStyle:{areaColor:'#f2f6f8'},label:{show:false}},label:{show:false}},
+  geo:{map:'world',roam:true,center:ZONE.c,zoom:ZONE.z,scaleLimit:{min:1.5,max:90},itemStyle:{areaColor:'#f4f4f2',borderColor:'#c3c8cc',borderWidth:.6},emphasis:{itemStyle:{areaColor:'#f2f6f8'},label:{show:false}},label:{show:false}},
   series:[{type:'scatter',coordinateSystem:'geo',symbol:'pin',animationDurationUpdate:600,symbolSize:function(v){return v[2]===SEL?36:24},
    data:D.map(function(s){return {name:s.name,value:[s.lng,s.lat,s.i],itemStyle:{color:colorOf(s),borderColor:'#fff',borderWidth:1.2,shadowBlur:4,shadowColor:'rgba(20,56,79,.35)'}}}),z:3}]},true);
  c.off('click');c.on('click',function(p){if(p.seriesType==='scatter')pick(p.value[2],true)})}
@@ -281,7 +294,7 @@ function box4(){$('b4t').textContent=X('แหล่งข้อมูล / Data
 
 function render(){$('dpt').textContent=PAGE==='dr'?(TH()?'ภัยแล้ง':'Drought'):(TH()?'คุณภาพอากาศและความร้อน':'Air quality & Heat');$('dbkt').textContent=TH()?'หน้าหลัก':'Main Page';
  if(ZONE.s&&ZONE.s.indexOf(SEL)<0)SEL=topOf(ZONE.s);feed();stats();zones();drawMap();rank();box2();box3();box4();countUp($('dst'))}
-addEventListener('resize',function(){if(sec.hidden)return;Object.keys(CH).forEach(function(k){CH[k].resize()});if(PAGE==='air')particles()});
+addEventListener('resize',function(){if(sec.hidden)return;if(DL)DL.invalidateSize();Object.keys(CH).forEach(function(k){CH[k].resize()});if(PAGE==='air')particles()});
 var SELF='https://scgp-climate-flooding.vercel.app',WEB=/^https?:$/.test(location.protocol)&&!/(^|\.)claude\.ai$|claudeusercontent|anthropic/.test(location.hostname);
 function pj(res){var p=res&&res.payload!==undefined?res.payload:res;if(typeof p==='string'){try{p=JSON.parse(p)}catch(_){}}if(p&&typeof p.text==='string'){if(p.status&&p.status!==200)throw new Error('HTTP '+p.status);return JSON.parse(p.text)}return p}
 function fj(u){return fetch(u).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})}

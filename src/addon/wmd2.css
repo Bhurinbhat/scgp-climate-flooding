@@ -199,3 +199,7 @@
 .dov .wz span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.2cqw;font-weight:500;letter-spacing:.01em;font-variant-numeric:tabular-nums;pointer-events:none}
 .dov .wz:hover,.dov .wz.hl{background:#eef6fa}
 .dov .wz.fl{background:#ffe8e8;color:#e60000;animation:none}
+
+/* SCGP Locations basemap: Esri Light Gray Canvas (grey water, light land, spaced ocean labels) */
+#map,#map.leaflet-container,.dmw{background:#d4dadd}
+#map .leaflet-control-attribution,#dmap .leaflet-control-attribution{font-size:9px;background:rgba(255,255,255,.7);color:#5f6b73}
