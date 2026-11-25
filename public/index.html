@@ -387,6 +387,8 @@ input:focus{outline:2px solid #1e6f8c;border-color:transparent}
 #map,#map.leaflet-container,.dmw{background:#d4dadd}
 #map.leaflet-container,#dmap.leaflet-container{background:#b9d3e6}
 #map .leaflet-control-attribution,#dmap .leaflet-control-attribution{font-size:9px;background:rgba(255,255,255,.7);color:#5f6b73}
+/* hide hairline seams between tiles at fractional zoom */
+#map .leaflet-tile,#dmap .leaflet-tile{width:256.6px!important;height:256.6px!important}
 
 /* Drought / Air & Heat pages — same look as the Flooding page */
 .dp .fp-g{gap:20px}
