@@ -1587,7 +1587,7 @@ var AIR='<svg '+V+'><defs><filter id="hsn" x="0" y="0" width="100%" height="100%
 /* stock video per risk (Pexels License, free for commercial use). On the website it is served through the
    site's own /media/ path; elsewhere straight from Pexels. Until a video can play, the animated drawing shows. */
 var VID={flood:['https://videos.pexels.com/video-files/18153515/18153515-hd_1280_720_25fps.mp4','WA_ Films'],
- drought:['https://videos.pexels.com/video-files/37533932/15903372_1280_720_30fps.mp4','Philipp Kappler'],
+ drought:['https://videos.pexels.com/video-files/37533724/15903360_1280_720_30fps.mp4','Philipp Kappler'],
  air:['https://videos.pexels.com/video-files/31370255/13386245_1280_720_24fps.mp4','Usman AbdulrasheedGambo']};
 var SAME=/(^|\.)vercel\.app$|^localhost$/.test(location.hostname);
 function vtag(k){return '<video class="hv" muted loop playsinline preload="none" data-src="'+(SAME?'/media/'+k+'.mp4':VID[k][0])+'"></video><div class="vshade"></div><span class="vcr">Video: '+VID[k][1]+' / Pexels</span>'}
