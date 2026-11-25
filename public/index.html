@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin=""><script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script><script>(function(){if(!window.L||!L.noConflict)return;var lf=L.noConflict();if(/(^|\.)vercel\.app$|^localhost$|^127\.0\.0\.1$/.test(location.hostname))window.LF=lf})();</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin=""><script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script><script>(function(){if(!window.L||!L.noConflict)return;var lf=L.noConflict();if(/(^|\.)vercel\.app$|^localhost$|^127\.0\.0\.1$/.test(location.hostname))window.LF=lf;var E="https://server.arcgisonline.com/ArcGIS/rest/services/";window.SCGPBase=function(){return lf.featureGroup([lf.tileLayer(E+"Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",{maxZoom:9.49}),lf.tileLayer(E+"Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}",{maxZoom:9.49,pane:"overlayPane"}),lf.tileLayer(E+"World_Topo_Map/MapServer/tile/{z}/{y}/{x}",{minZoom:9.5,maxZoom:19})])}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Climate Change Management for Sustainability</title>
 <style>
@@ -385,6 +385,7 @@ input:focus{outline:2px solid #1e6f8c;border-color:transparent}
 
 /* SCGP Locations basemap: Esri Light Gray Canvas (grey water, light land, spaced ocean labels) */
 #map,#map.leaflet-container,.dmw{background:#d4dadd}
+#map.leaflet-container,#dmap.leaflet-container{background:#b9d3e6}
 #map .leaflet-control-attribution,#dmap .leaflet-control-attribution{font-size:9px;background:rgba(255,255,255,.7);color:#5f6b73}
 
 /* Drought / Air & Heat pages — same look as the Flooding page */
@@ -638,7 +639,7 @@ function initMap(){var el=document.getElementById('map');if(lmap){lmap.invalidat
 if(!window.LF||lfail){initMapE();return}
 el.innerHTML='';
 lmap=LF.map(el,{zoomControl:false,attributionControl:false,minZoom:2,maxZoom:18,zoomSnap:.5,zoomDelta:.5,wheelPxPerZoomLevel:90}).setView([13.4,101],6);
-var voy=LF.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19}),lref=LF.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19,pane:'overlayPane'}),
+var voy=window.SCGPBase(),lref=LF.layerGroup([]),
 sat=LF.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18}),loaded=0,errs=0;
 function watch(t){t.on('tileload',function(){loaded++});t.on('tileerror',function(){errs++})}
 watch(voy);watch(sat);voy.addTo(lmap);lref.addTo(lmap);lbaseL=voy;
@@ -650,8 +651,8 @@ m.addTo(lmap);lmk.push(m)});
 var w=el.parentNode;
 [['+',1],['\u2212',-1]].forEach(function(d,k){var b=document.createElement('div');b.className='zb '+(k?'out':'in');b.textContent=d[0];b.onclick=function(){lmap.setZoom(lmap.getZoom()+d[1]*1)};w.appendChild(b)});
 var tg=document.createElement('div');tg.className='lbase';tg.innerHTML='<button type="button" aria-pressed="true">Map</button><button type="button" aria-pressed="false">Satellite</button>';
-var at=document.createElement('div');at.className='lattr';at.textContent='Tiles \u00a9 Esri \u2014 Esri, HERE, Garmin, \u00a9 OpenStreetMap contributors';
-tg.children[0].onclick=function(){lmap.removeLayer(sat);voy.addTo(lmap);tg.children[0].setAttribute('aria-pressed','true');tg.children[1].setAttribute('aria-pressed','false');at.className='lattr';at.textContent='Tiles \u00a9 Esri \u2014 Esri, HERE, Garmin, \u00a9 OpenStreetMap contributors'};
+var at=document.createElement('div');at.className='lattr';at.textContent='Tiles \u00a9 Esri \u2014 Esri, GEBCO, NOAA, Garmin, HERE, \u00a9 OpenStreetMap contributors';
+tg.children[0].onclick=function(){lmap.removeLayer(sat);voy.addTo(lmap);tg.children[0].setAttribute('aria-pressed','true');tg.children[1].setAttribute('aria-pressed','false');at.className='lattr';at.textContent='Tiles \u00a9 Esri \u2014 Esri, GEBCO, NOAA, Garmin, HERE, \u00a9 OpenStreetMap contributors'};
 tg.children[1].onclick=function(){lmap.removeLayer(voy);sat.addTo(lmap);tg.children[1].setAttribute('aria-pressed','true');tg.children[0].setAttribute('aria-pressed','false');at.className='lattr sat';at.textContent='Imagery \u00a9 Esri, Maxar, Earthstar Geographics'};
 w.appendChild(tg);w.appendChild(at);
 if(window.ResizeObserver)new ResizeObserver(function(){if(lmap)lmap.invalidateSize()}).observe(el);
@@ -1263,8 +1264,8 @@ function dView(){if(!DL)return;var ids=ZONE.s||D.map(function(s){return s.i});va
  if(ids.length===1)DL.flyTo(b.getCenter(),11,{duration:.8});else DL.flyToBounds(b.pad(ZONE.s?.25:.08),{maxZoom:11,duration:.8})}
 function drawMapL(){var el=$('dmap');
  if(!DL){el.innerHTML='';DL=LF.map(el,{zoomControl:false,attributionControl:false,minZoom:2,maxZoom:18,zoomSnap:.5,zoomDelta:.5,wheelPxPerZoomLevel:90}).setView([7,108],4);
-  var base=LF.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19}),ref=LF.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19,pane:'overlayPane'}),ok=0;
-  base.on('tileload',function(){ok++});base.addTo(DL);ref.addTo(DL);LF.control.zoom({position:'bottomright'}).addTo(DL);LF.control.attribution({position:'bottomright',prefix:false}).addAttribution('Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors').addTo(DL);
+  var base=window.SCGPBase(),ok=0;
+  base.on('tileload',function(){ok++});base.addTo(DL);LF.control.zoom({position:'bottomright'}).addTo(DL);LF.control.attribution({position:'bottomright',prefix:false}).addAttribution('Tiles &copy; Esri &mdash; Esri, GEBCO, NOAA, Garmin, HERE, &copy; OpenStreetMap contributors').addTo(DL);
   setTimeout(function(){if(!ok&&DL){DLFAIL=true;DL.remove();DL=null;DLM=[];el.innerHTML='';drawMap()}},7000);DLZ=null}
  else DL.invalidateSize();
  DLM.forEach(function(m){m.remove()});DLM=D.map(function(s){var m=LF.marker([s.lat,s.lng],{icon:dPin(colorOf(s),s.i===SEL),zIndexOffset:s.i===SEL?2000:Math.round(score(s)*10),riseOnHover:true,keyboard:false});

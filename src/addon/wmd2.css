@@ -202,4 +202,5 @@
 
 /* SCGP Locations basemap: Esri Light Gray Canvas (grey water, light land, spaced ocean labels) */
 #map,#map.leaflet-container,.dmw{background:#d4dadd}
+#map.leaflet-container,#dmap.leaflet-container{background:#b9d3e6}
 #map .leaflet-control-attribution,#dmap .leaflet-control-attribution{font-size:9px;background:rgba(255,255,255,.7);color:#5f6b73}

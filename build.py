@@ -16,7 +16,14 @@ s = s.replace('</style>', css + '\n</style>', 1).replace('</body>', '<script>\n'
 LEAF = ('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="">'
         '<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>'
         '<script>(function(){if(!window.L||!L.noConflict)return;var lf=L.noConflict();'
-        'if(/(^|\\.)vercel\\.app$|^localhost$|^127\\.0\\.0\\.1$/.test(location.hostname))window.LF=lf})();</script>')
+        'if(/(^|\\.)vercel\\.app$|^localhost$|^127\\.0\\.0\\.1$/.test(location.hostname))window.LF=lf;'
+        # basemap shared by all SCGP Locations maps: Esri Ocean (bathymetry, soft colours) up to zoom 9,
+        # Esri World Topographic for closer views
+        'var E="https://server.arcgisonline.com/ArcGIS/rest/services/";'
+        'window.SCGPBase=function(){return lf.featureGroup(['
+        'lf.tileLayer(E+"Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",{maxZoom:9.49}),'
+        'lf.tileLayer(E+"Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}",{maxZoom:9.49,pane:"overlayPane"}),'
+        'lf.tileLayer(E+"World_Topo_Map/MapServer/tile/{z}/{y}/{x}",{minZoom:9.5,maxZoom:19})])}})();</script>')
 s = s.replace('<meta name="viewport"', LEAF + '\n<meta name="viewport"', 1)
 (R / 'public').mkdir(exist_ok=True)
 (R / 'public/index.html').write_text(s, encoding='utf-8')

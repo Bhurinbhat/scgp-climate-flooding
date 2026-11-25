@@ -94,8 +94,8 @@ function dView(){if(!DL)return;var ids=ZONE.s||D.map(function(s){return s.i});va
  if(ids.length===1)DL.flyTo(b.getCenter(),11,{duration:.8});else DL.flyToBounds(b.pad(ZONE.s?.25:.08),{maxZoom:11,duration:.8})}
 function drawMapL(){var el=$('dmap');
  if(!DL){el.innerHTML='';DL=LF.map(el,{zoomControl:false,attributionControl:false,minZoom:2,maxZoom:18,zoomSnap:.5,zoomDelta:.5,wheelPxPerZoomLevel:90}).setView([7,108],4);
-  var base=LF.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19}),ref=LF.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19,pane:'overlayPane'}),ok=0;
-  base.on('tileload',function(){ok++});base.addTo(DL);ref.addTo(DL);LF.control.zoom({position:'bottomright'}).addTo(DL);LF.control.attribution({position:'bottomright',prefix:false}).addAttribution('Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors').addTo(DL);
+  var base=window.SCGPBase(),ok=0;
+  base.on('tileload',function(){ok++});base.addTo(DL);LF.control.zoom({position:'bottomright'}).addTo(DL);LF.control.attribution({position:'bottomright',prefix:false}).addAttribution('Tiles &copy; Esri &mdash; Esri, GEBCO, NOAA, Garmin, HERE, &copy; OpenStreetMap contributors').addTo(DL);
   setTimeout(function(){if(!ok&&DL){DLFAIL=true;DL.remove();DL=null;DLM=[];el.innerHTML='';drawMap()}},7000);DLZ=null}
  else DL.invalidateSize();
  DLM.forEach(function(m){m.remove()});DLM=D.map(function(s){var m=LF.marker([s.lat,s.lng],{icon:dPin(colorOf(s),s.i===SEL),zIndexOffset:s.i===SEL?2000:Math.round(score(s)*10),riseOnHover:true,keyboard:false});
