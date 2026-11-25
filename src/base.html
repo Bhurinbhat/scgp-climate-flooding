@@ -331,7 +331,7 @@ lmap=LF.map(el,{zoomControl:false,attributionControl:false,minZoom:2,maxZoom:18,
 var voy=LF.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19}),lref=LF.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19,pane:'overlayPane'}),
 sat=LF.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18}),loaded=0,errs=0;
 function watch(t){t.on('tileload',function(){loaded++});t.on('tileerror',function(){errs++})}
-watch(voy);watch(sat);voy.addTo(lmap);lref.addTo(lmap);lbaseL=voy;LF.control.attribution({position:'topright',prefix:false}).addAttribution('Tiles &copy; Esri').addTo(lmap);
+watch(voy);watch(sat);voy.addTo(lmap);lref.addTo(lmap);lbaseL=voy;
 setTimeout(function(){if(!loaded&&lmap){lfail=true;lmap.remove();lmap=null;el.className='';el.innerHTML='';initMapE()}},7000);
 PTS.forEach(function(p,i){var r=RED.indexOf(p[0])>=0,m=LF.marker([p[2],p[1]],{icon:pinIcon(r,false),zIndexOffset:r?1000:0,riseOnHover:true,keyboard:false});m._r=r;m._i=i;
 m.bindTooltip(p[0],{direction:'top',className:'lbl',offset:[0,0]});
@@ -340,8 +340,8 @@ m.addTo(lmap);lmk.push(m)});
 var w=el.parentNode;
 [['+',1],['\u2212',-1]].forEach(function(d,k){var b=document.createElement('div');b.className='zb '+(k?'out':'in');b.textContent=d[0];b.onclick=function(){lmap.setZoom(lmap.getZoom()+d[1]*1)};w.appendChild(b)});
 var tg=document.createElement('div');tg.className='lbase';tg.innerHTML='<button type="button" aria-pressed="true">Map</button><button type="button" aria-pressed="false">Satellite</button>';
-var at=document.createElement('div');at.className='lattr';at.textContent='\u00a9 OpenStreetMap contributors \u00a9 CARTO';
-tg.children[0].onclick=function(){lmap.removeLayer(sat);voy.addTo(lmap);tg.children[0].setAttribute('aria-pressed','true');tg.children[1].setAttribute('aria-pressed','false');at.className='lattr';at.textContent='\u00a9 OpenStreetMap contributors \u00a9 CARTO'};
+var at=document.createElement('div');at.className='lattr';at.textContent='Tiles \u00a9 Esri \u2014 Esri, HERE, Garmin, \u00a9 OpenStreetMap contributors';
+tg.children[0].onclick=function(){lmap.removeLayer(sat);voy.addTo(lmap);tg.children[0].setAttribute('aria-pressed','true');tg.children[1].setAttribute('aria-pressed','false');at.className='lattr';at.textContent='Tiles \u00a9 Esri \u2014 Esri, HERE, Garmin, \u00a9 OpenStreetMap contributors'};
 tg.children[1].onclick=function(){lmap.removeLayer(voy);sat.addTo(lmap);tg.children[1].setAttribute('aria-pressed','true');tg.children[0].setAttribute('aria-pressed','false');at.className='lattr sat';at.textContent='Imagery \u00a9 Esri, Maxar, Earthstar Geographics'};
 w.appendChild(tg);w.appendChild(at);
 if(window.ResizeObserver)new ResizeObserver(function(){if(lmap)lmap.invalidateSize()}).observe(el);
