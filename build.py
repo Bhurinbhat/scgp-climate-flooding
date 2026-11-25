@@ -20,10 +20,12 @@ LEAF = ('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4
         # basemap shared by all SCGP Locations maps: Esri Ocean (bathymetry, soft colours) up to zoom 9,
         # Esri World Topographic for closer views
         'var E="https://server.arcgisonline.com/ArcGIS/rest/services/";'
-        'window.SCGPBase=function(){return lf.featureGroup(['
+        # tile events are re-fired on the group so the pages' "did the map load?" checks see them
+        'window.SCGPBase=function(){var ls=['
         'lf.tileLayer(E+"Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",{maxZoom:9.49}),'
         'lf.tileLayer(E+"Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}",{maxZoom:9.49,pane:"overlayPane"}),'
-        'lf.tileLayer(E+"World_Topo_Map/MapServer/tile/{z}/{y}/{x}",{minZoom:9.5,maxZoom:19})])}})();</script>')
+        'lf.tileLayer(E+"World_Topo_Map/MapServer/tile/{z}/{y}/{x}",{minZoom:9.5,maxZoom:19})],g=lf.featureGroup(ls);'
+        'ls.forEach(function(l){l.on("tileload",function(e){g.fire("tileload",e)});l.on("tileerror",function(e){g.fire("tileerror",e)})});return g}})();</script>')
 s = s.replace('<meta name="viewport"', LEAF + '\n<meta name="viewport"', 1)
 (R / 'public').mkdir(exist_ok=True)
 (R / 'public/index.html').write_text(s, encoding='utf-8')
