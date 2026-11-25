@@ -1,0 +1,48 @@
+/* Main page: animated background per climate risk while a topic button is hovered / focused */
+.hfx{position:absolute;inset:0;pointer-events:none;z-index:1}
+.hfx .hs{position:absolute;inset:0;opacity:0;transition:opacity .9s ease;overflow:hidden}
+.hfx .hs svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero .kb,.hero #rain,.hero .shade{transition:filter 1.1s ease,opacity .9s ease}
+.hero[data-hv=flood] .hs-fl,.hero[data-hv=drought] .hs-dr,.hero[data-hv=air] .hs-air{opacity:1}
+.hero[data-hv=flood] .kb{filter:saturate(.75) brightness(.78) hue-rotate(8deg)}
+.hero[data-hv=drought] .kb{filter:sepia(.8) saturate(1.7) hue-rotate(-14deg) brightness(1.08) contrast(1.05)}
+.hero[data-hv=air] .kb{filter:grayscale(.55) sepia(.45) brightness(.72) contrast(.85) blur(1.5px)}
+.hero[data-hv=drought] #rain,.hero[data-hv=air] #rain,.hero[data-hv=drought] #fx,.hero[data-hv=air] #fx,.hero[data-hv=drought] .flash,.hero[data-hv=air] .flash{opacity:0}
+.hero[data-hv] .topic:not(:hover):not(:focus-visible){opacity:.82}
+.hero[data-hv] .topic:hover,.hero[data-hv] .topic:focus-visible{transform:scale(1.06);background:rgba(255,255,255,.24);box-shadow:0 0 0 2px rgba(255,255,255,.55),0 12px 40px rgba(0,0,0,.35)}
+.hero .topic{transition:transform .35s ease,background .35s ease,box-shadow .35s ease,opacity .35s ease}
+/* --- flood --- */
+.hs-fl .rise{transform:translateY(300px);transition:transform 2.4s cubic-bezier(.2,.7,.2,1)}
+.hero[data-hv=flood] .hs-fl .rise{transform:translateY(0)}
+.hs-fl .w1{animation:hsw 9s linear infinite}.hs-fl .w2{animation:hsw 13s linear infinite reverse}.hs-fl .w3{animation:hsw 6s linear infinite}
+@keyframes hsw{to{transform:translateX(-400px)}}
+.hs-fl .bob{animation:hsbob 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes hsbob{50%{transform:translateY(7px) rotate(3deg)}}
+.hs-fl .rain{animation:hsrain .55s linear infinite}
+.hs-fl .rain.b{animation-duration:.8s;opacity:.55}
+@keyframes hsrain{to{transform:translate(-60px,240px)}}
+.hs-fl .bolt{opacity:0;animation:hsbolt 6s infinite}
+@keyframes hsbolt{0%,86%,100%{opacity:0}87%{opacity:1}88%{opacity:.2}89%{opacity:.9}91%{opacity:0}}
+.hs-fl .shimmer{animation:hsshim 2.6s ease-in-out infinite}
+@keyframes hsshim{50%{opacity:.15;transform:translateX(30px)}}
+/* --- drought --- */
+.hs-dr .sun{animation:hsspin 40s linear infinite;transform-box:fill-box;transform-origin:center}
+@keyframes hsspin{to{transform:rotate(360deg)}}
+.hs-dr .glow{animation:hsglow 4s ease-in-out infinite}
+@keyframes hsglow{50%{opacity:.55}}
+.hs-dr .ground{transform:translateY(260px);transition:transform 2s cubic-bezier(.2,.7,.2,1)}
+.hero[data-hv=drought] .hs-dr .ground{transform:translateY(0)}
+.hs-dr .crk path{stroke-dasharray:420;stroke-dashoffset:420;transition:stroke-dashoffset 2.6s ease .6s}
+.hero[data-hv=drought] .hs-dr .crk path{stroke-dashoffset:0}
+.hs-dr .heat{animation:hsheat 3.4s ease-in-out infinite}
+@keyframes hsheat{0%{transform:translateY(0);opacity:0}40%{opacity:.6}100%{transform:translateY(-120px);opacity:0}}
+.hs-dr .dust{animation:hsdust 11s linear infinite}
+@keyframes hsdust{from{transform:translateX(-200px)}to{transform:translateX(1800px)}}
+/* --- air quality & heat --- */
+.hs-air .smog{animation:hssmog 38s linear infinite}.hs-air .smog.b{animation-duration:60s;animation-direction:reverse}
+@keyframes hssmog{to{transform:translateX(-1600px)}}
+.hs-air .puff{animation:hspuff 6s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes hspuff{from{transform:translate(0,0) scale(.5);opacity:.85}to{transform:translate(70px,-230px) scale(3.2);opacity:0}}
+.hs-air .rsun{animation:hsglow 5s ease-in-out infinite}
+.hs-air canvas{position:absolute;inset:0;width:100%;height:100%}
+@media(prefers-reduced-motion:reduce){.hfx *{animation:none!important;transition:none!important}}

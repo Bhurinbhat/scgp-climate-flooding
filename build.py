@@ -8,6 +8,9 @@ js = (R / 'src/addon/wmd-data.js').read_text(encoding='utf-8') + '\n' + (R / 'sr
 cjs = (R / 'src/addon/climate2.js').read_text(encoding='utf-8').replace('(function(){', '(function(){\n' + (R / 'src/addon/climate2-data.js').read_text(encoding='utf-8'), 1)
 css += '\n' + (R / 'src/addon/climate2.css').read_text(encoding='utf-8')
 js += '\n' + cjs
+# main page: animated background per climate risk on hover
+css += '\n' + (R / 'src/addon/hover-scenes.css').read_text(encoding='utf-8')
+js += '\n' + (R / 'src/addon/hover-scenes.js').read_text(encoding='utf-8')
 assert s.count('</style>') == 1 and s.count('</body>') == 1
 s = s.replace('</style>', css + '\n</style>', 1).replace('</body>', '<script>\n' + js + '\n</script>\n</body>', 1)
 # Leaflet for the SCGP Locations maps (Esri Light Gray Canvas tiles). Loaded before the page scripts and taken
